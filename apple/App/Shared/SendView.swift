@@ -3,6 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 #if os(iOS)
 import PhotosUI
+import UIKit
 #else
 import AppKit
 #endif
@@ -222,7 +223,12 @@ private struct IOSDeviceRow: View {
                     .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if canSend {
+                if SendFeedback.shared.justSent.contains(peer.info.alias) {
+                    Label("Sent", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.slipGreen)
+                        .transition(.scale.combined(with: .opacity))
+                } else if canSend {
                     Text("Send")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
@@ -250,7 +256,7 @@ private struct IOSSelectionChip: View {
             if item.preview != nil {
                 Image(systemName: "text.bubble.fill").foregroundStyle(Color.slipGreen)
             } else {
-                FileGlyph(fileName: item.fileName, mimeType: item.mimeType, size: 26)
+                FileThumbnail(item: item, size: 28)
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(item.displayName).font(.footnote.weight(.medium)).lineLimit(1).truncationMode(.middle)
@@ -292,25 +298,66 @@ struct TextComposer: View {
     var onAdd: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
+    @FocusState private var focused: Bool
+
+    private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
         NavigationStack {
-            TextEditor(text: $text)
-                .font(.body)
-                .padding(8)
-                .frame(minWidth: 360, minHeight: 200)
-                .navigationTitle("Send text")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Add") {
-                            onAdd(text)
-                            dismiss()
-                        }
-                        .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
+            VStack(alignment: .leading, spacing: 10) {
+                TextField("Type a message or paste a link", text: $text, axis: .vertical)
+                    .lineLimit(5...12)
+                    .font(.body)
+                    .focused($focused)
+                    .padding(14)
+                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .accessibilityLabel("Message")
+                HStack {
+                    Button("Paste", systemImage: "doc.on.clipboard") { pasteClipboard() }
+                        .buttonStyle(.borderless)
+                    Spacer()
+                    Text("\(text.count) characters")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
+                .font(.callout)
+                Text("Text arrives as a message on the other device. LocalSend shows it too.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+            .padding(20)
+            #if os(macOS)
+            .frame(width: 440, height: 300)
+            #endif
+            .navigationTitle("Send Text")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        onAdd(text)
+                        dismiss()
+                    }
+                    .disabled(trimmed.isEmpty)
+                }
+            }
+            .onAppear { focused = true }
         }
+        #if os(iOS)
+        .presentationDetents([.medium, .large])
+        #endif
+    }
+
+    private func pasteClipboard() {
+        #if os(macOS)
+        if let s = NSPasteboard.general.string(forType: .string) { text += s }
+        #else
+        if let s = UIPasteboard.general.string { text += s }
+        #endif
     }
 }
 

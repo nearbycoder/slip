@@ -206,7 +206,7 @@ private struct FileRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            FileGlyph(fileName: file.name, size: 28)
+            FileThumbnail(url: file.url, fileName: file.name, size: 32)
             VStack(alignment: .leading, spacing: 3) {
                 Text((file.name as NSString).lastPathComponent).lineLimit(1).truncationMode(.middle)
                 if file.status == .inProgress {

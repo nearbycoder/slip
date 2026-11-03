@@ -78,6 +78,7 @@ public struct SlipSettings: Codable, Equatable, Sendable {
         }
         if defaults.object(forKey: "SlipQuickSave") != nil { settings.quickSave = defaults.bool(forKey: "SlipQuickSave") }
         if let alias = defaults.string(forKey: "SlipAlias") { settings.alias = alias }
+        if let theme = defaults.string(forKey: "SlipTheme").flatMap(AppTheme.init(rawValue:)) { settings.theme = theme }
         return settings
     }
 

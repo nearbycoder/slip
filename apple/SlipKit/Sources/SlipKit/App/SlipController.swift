@@ -237,9 +237,14 @@ public final class SlipController {
             // Fallback scan if multicast found nobody after a few seconds.
             try? await Task.sleep(nanoseconds: 4_000_000_000)
             if let self, self.peers.isEmpty { await self.scan() }
+            var tick = 0
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 10_000_000_000)
-                self?.expirePeers()
+                tick += 1
+                // Peers only announce at startup, so ask again every 30 s; their /register
+                // replies keep them fresh.
+                if tick % 3 == 0, self?.settings.discoverable == true { self?.discovery?.announce() }
+                await self?.expirePeers()
             }
         }
     }
@@ -273,10 +278,31 @@ public final class SlipController {
         }
     }
 
-    private func expirePeers() {
+    /// Drops peers not heard from in a minute, but only after a direct probe also fails.
+    private func expirePeers() async {
         let busy = Set(activeTransfers.map(\.peerAlias))
         let cutoff = Date().addingTimeInterval(-60)
-        peers.removeAll { p in (lastSeen[p.id] ?? .distantPast) < cutoff && !busy.contains(p.info.alias) }
+        let stale = peers.filter { (lastSeen[$0.id] ?? .distantPast) < cutoff && !busy.contains($0.info.alias) }
+        guard !stale.isEmpty else { return }
+        let info = deviceInfo
+        let client = client
+        await withTaskGroup(of: (DiscoveredPeer, DeviceInfo?).self) { group in
+            for peer in stale {
+                group.addTask { (peer, try? await client.register(at: peer.address, info: info, timeout: 2)) }
+            }
+            for await (peer, reply) in group {
+                if let reply {
+                    var fresh = reply
+                    fresh.port = peer.info.port
+                    fresh.protocol = peer.info.protocol
+                    fresh.fingerprint = peer.info.fingerprint
+                    upsert(DiscoveredPeer(info: fresh, ip: peer.ip))
+                } else {
+                    peers.removeAll { $0.id == peer.id }
+                    lastSeen[peer.id] = nil
+                }
+            }
+        }
     }
 
     /// Adds a device by IP (manual "send to IP"): asks it to register.

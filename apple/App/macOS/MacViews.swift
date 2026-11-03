@@ -131,6 +131,8 @@ struct MacSendView: View {
             selection.add(urls: urls)
             return true
         } isTargeted: { dropTargeted = $0 }
+        .onPasteCommand(of: [.fileURL, .image, .plainText]) { _ in Platform.paste(into: selection) }
+        .onReceive(NotificationCenter.default.publisher(for: .slipAddText)) { _ in showingText = true }
         .navigationTitle("Send")
         .navigationSubtitle(subtitle)
         .toolbar {
@@ -230,7 +232,13 @@ private struct MacDeviceRow: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            if targeted {
+            if SendFeedback.shared.justSent.contains(peer.info.alias) {
+                Label("Sent", systemImage: "checkmark.circle.fill")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(Color.slipGreen)
+                    .symbolEffect(.bounce, value: SendFeedback.shared.justSent.contains(peer.info.alias))
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+            } else if targeted {
                 Label("Drop to Send", systemImage: "arrow.down.doc.fill")
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(Color.slipGreen)
@@ -348,7 +356,7 @@ private struct SelectionChip: View {
             if item.preview != nil {
                 Image(systemName: "text.bubble.fill").foregroundStyle(Color.slipGreen)
             } else {
-                FileGlyph(fileName: item.fileName, mimeType: item.mimeType, size: 24)
+                FileThumbnail(item: item, size: 26)
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(item.displayName).lineLimit(1).truncationMode(.middle).frame(maxWidth: 160, alignment: .leading)

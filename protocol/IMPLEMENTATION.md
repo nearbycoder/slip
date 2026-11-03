@@ -90,8 +90,12 @@ Unknown JSON fields must be ignored everywhere.
 5. **HTTP scan fallback** (refresh button / when no peers after a few seconds): for each
    local IPv4 interface with a /24 (or smaller) subnet, `POST /register` to every host
    address in parallel (≤ 50 concurrent, ~1 s timeout each) on the configured port.
-6. Peers expire from the list if not seen for ~60 s unless a transfer with them is active.
-   Peers are keyed by fingerprint.
+6. **Keep the list fresh.** Peers (LocalSend especially) only announce at startup, so while
+   running, re-send our announcement (`announce: true`, a single packet is enough) every
+   ~30 s; peers answer with `POST /register`, which refreshes them.
+7. Peers not seen for ~60 s are **probed** with a direct `POST /register` (~2 s timeout) and
+   removed only if that fails. Never expire a peer with an active transfer.
+   Peers are keyed by fingerprint; keep the original fingerprint when refreshing from a probe.
 
 HTTPS clients **must accept self-signed certificates** (disable chain/hostname
 validation for these LocalSend endpoints only). Optionally pin `sha256(peer cert) ==

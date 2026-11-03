@@ -96,7 +96,6 @@ struct ReceiveHero: View {
         .padding(.top, 4)
         .padding(.bottom, 20)
         .textCase(nil)
-        .animation(.smooth, value: live)
     }
 }
 
@@ -118,7 +117,7 @@ struct RecentlyReceived: View {
             Section("Recently Received") {
                 ForEach(files, id: \.file.id) { entry in
                     HStack(spacing: 10) {
-                        FileGlyph(fileName: entry.file.name, size: 30)
+                        FileThumbnail(url: entry.file.url, fileName: entry.file.name, size: 36)
                         VStack(alignment: .leading, spacing: 1) {
                             Text((entry.file.name as NSString).lastPathComponent).lineLimit(1).truncationMode(.middle)
                             Text("From \(entry.from) · \(Format.bytes(entry.file.size))")

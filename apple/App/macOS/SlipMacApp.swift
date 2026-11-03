@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.activate()
                 NSApp.requestUserAttention(.informationalRequest)
             }
-            Task { await controller.start() }
+            if !Welcome.isNeeded { Task { await controller.start() } }
         }
     }
 
@@ -61,8 +61,18 @@ struct SlipMacApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("Add Files…") { NotificationCenter.default.post(name: .slipAddFiles, object: nil) }
                     .keyboardShortcut("o")
+                Button("Add Text…") { NotificationCenter.default.post(name: .slipAddText, object: nil) }
+                    .keyboardShortcut("t", modifiers: [.command, .shift])
+                Divider()
                 Button("Refresh Devices") { controller.refresh() }
                     .keyboardShortcut("r")
+            }
+            CommandGroup(before: .sidebar) {
+                ForEach(Array(SidebarItem.allCases.enumerated()), id: \.element) { index, pane in
+                    Button(pane.title) { NotificationCenter.default.post(name: .slipSelectPane, object: pane.rawValue) }
+                        .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")))
+                }
+                Divider()
             }
         }
 
@@ -105,6 +115,8 @@ enum MenuBarKey {
 
 extension Notification.Name {
     static let slipAddFiles = Notification.Name("SlipAddFiles")
+    static let slipAddText = Notification.Name("SlipAddText")
+    static let slipSelectPane = Notification.Name("SlipSelectPane")
 }
 
 enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
@@ -127,6 +139,7 @@ struct MacRootView: View {
     @Environment(\.openSettings) private var openSettings
     // `-SlipTab send` opens a specific pane (developer override, like `-SlipPort`).
     @State private var item: SidebarItem? = SidebarItem(rawValue: UserDefaults.standard.string(forKey: "SlipTab") ?? "") ?? .receive
+    @State private var showingWelcome = Welcome.isNeeded
     @AppStorage(MenuBarKey.showExtra) private var showMenuBarExtra = true
 
     @ViewBuilder
@@ -173,6 +186,8 @@ struct MacRootView: View {
             if UserDefaults.standard.string(forKey: "SlipPreview") == "request", let request = controller.pendingRequest {
                 // Design review: the incoming-request sheet rendered in place.
                 IncomingRequestView(request: request).frame(width: 440).fixedSize(horizontal: false, vertical: true)
+            } else if UserDefaults.standard.string(forKey: "SlipPreview") == "welcome" {
+                WelcomeView {}
             } else if UserDefaults.standard.string(forKey: "SlipPreview") == "menubar" {
                 MenuBarContent().background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
             } else {
@@ -202,8 +217,20 @@ struct MacRootView: View {
                 selection.addText("See you at the tram stop at 6!")
             }
             #endif
-            await controller.start()
+            if !showingWelcome { await controller.start() }
         }
+        .sheet(isPresented: $showingWelcome) {
+            WelcomeView {
+                showingWelcome = false
+                Task { await controller.start() }
+            }
+            .environment(controller)
+        }
+        .background { DockTileSync() }
+        .onReceive(NotificationCenter.default.publisher(for: .slipSelectPane)) { note in
+            if let raw = note.object as? String, let pane = SidebarItem(rawValue: raw) { item = pane }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .slipAddText)) { _ in item = .send }
         .onReceive(NotificationCenter.default.publisher(for: .slipAddFiles)) { _ in
             item = .send
             let panel = NSOpenPanel()

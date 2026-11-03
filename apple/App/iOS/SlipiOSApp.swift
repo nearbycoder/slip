@@ -9,6 +9,7 @@ struct SlipiOSApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var wasBackgrounded = false
     @State private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    @State private var showingWelcome = Welcome.isNeeded
 
     var body: some Scene {
         WindowGroup {
@@ -25,7 +26,14 @@ struct SlipiOSApp: App {
                     }
                     #endif
                     SlipNotifications.shared.setUp(controller: controller)
-                    await controller.start()
+                    if !showingWelcome { await controller.start() }
+                }
+                .fullScreenCover(isPresented: $showingWelcome) {
+                    WelcomeView {
+                        showingWelcome = false
+                        Task { await controller.start() }
+                    }
+                    .environment(controller)
                 }
                 .onOpenURL { url in
                     // Files opened in Slip from other apps ("Open in…") go to the selection tray.
