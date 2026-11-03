@@ -30,6 +30,9 @@ jobs:
           java-version: "21"
 
       - uses: android-actions/setup-android@v3
+        with:
+          # The default "tools" package no longer exists in the SDK repository.
+          packages: ""
 
       - name: Install SDK platform
         # AGP also downloads missing components itself; this just makes it explicit and cached per run.
