@@ -18,6 +18,9 @@ public sealed class DiscoveryOptions
     /// <summary>Port probed by the HTTP scan (normally our own configured port).</summary>
     public int ScanPort { get; init; } = SlipConstants.DefaultPort;
     public bool ScanHttps { get; init; } = true;
+    /// <summary>Peers silent for this long are probed with /register and removed if that fails.</summary>
+    public TimeSpan PeerExpiry { get; init; } = SlipConstants.PeerExpiry;
+    public TimeSpan PeerProbeTimeout { get; init; } = SlipConstants.PeerProbeTimeout;
 }
 
 /// <summary>
@@ -31,6 +34,7 @@ public sealed class DiscoveryService : IAsyncDisposable
     private readonly PeerRegistry _registry;
     private readonly DiscoveryOptions _options;
     private readonly HttpClient _http;
+    private readonly HttpClient _probeHttp;
     private readonly IPAddress _group;
     private readonly object _sendGate = new();
     private readonly HashSet<IPAddress> _joined = [];
@@ -57,6 +61,7 @@ public sealed class DiscoveryService : IAsyncDisposable
         _options = options ?? new DiscoveryOptions();
         _group = IPAddress.Parse(_options.MulticastGroup);
         _http = SlipHttp.CreateDiscoveryClient(TimeSpan.FromSeconds(2));
+        _probeHttp = SlipHttp.CreateDiscoveryClient(_options.PeerProbeTimeout);
     }
 
     public void Start()
@@ -247,13 +252,48 @@ public sealed class DiscoveryService : IAsyncDisposable
 
     private async Task ExpiryLoopAsync(CancellationToken ct)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        var tick = TimeSpan.FromSeconds(10);
+        using var timer = new PeriodicTimer(tick);
+        var sinceAnnounce = TimeSpan.Zero;
         try
         {
             while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
-                _registry.ExpireStale(SlipConstants.PeerExpiry);
+            {
+                // Peers only announce at startup, so ask again periodically; their /register replies refresh them.
+                sinceAnnounce += tick;
+                if (sinceAnnounce >= SlipConstants.ReannounceInterval)
+                {
+                    sinceAnnounce = TimeSpan.Zero;
+                    if (Discoverable) SendMulticast(announce: true);
+                }
+                await ExpireStaleAsync(ct).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) { }
+    }
+
+    /// <summary>Probes peers not seen within <see cref="DiscoveryOptions.PeerExpiry"/> with POST /register
+    /// (concurrently) and removes only those that don't answer. Answering peers are refreshed under their
+    /// original fingerprint, port and protocol. Pinned peers (active transfers) are never touched.</summary>
+    public async Task ExpireStaleAsync(CancellationToken ct = default)
+    {
+        var stale = _registry.Stale(_options.PeerExpiry);
+        if (stale.Count == 0) return;
+        var self = _localInfo();
+        await Task.WhenAll(stale.Select(async peer =>
+        {
+            var reply = await SlipHttp.RegisterAsync(_probeHttp, PeerEndpoint.From(peer), self, ct).ConfigureAwait(false);
+            if (ct.IsCancellationRequested) return;
+            if (reply is not null)
+            {
+                _registry.Upsert(reply with { Fingerprint = peer.Fingerprint, Port = peer.Info.Port, Protocol = peer.Info.Protocol },
+                    peer.Address, peer.Source);
+            }
+            else if (_registry.Remove(peer))
+            {
+                SlipLog.Debug($"Peer {peer.Alias} @ {peer.Address} is gone");
+            }
+        })).ConfigureAwait(false);
     }
 
     /// <summary>Legacy HTTP discovery: POST /register to every host of each local /24 (≤50 concurrent, ~1 s timeout).</summary>
@@ -316,5 +356,6 @@ public sealed class DiscoveryService : IAsyncDisposable
     {
         await StopAsync().ConfigureAwait(false);
         _http.Dispose();
+        _probeHttp.Dispose();
     }
 }

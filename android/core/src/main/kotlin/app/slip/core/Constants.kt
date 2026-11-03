@@ -12,8 +12,14 @@ object SlipConstants {
     /** How long prepare-upload is held open waiting for the user before answering 403. */
     const val DECISION_TIMEOUT_MS = 60_000L
 
-    /** Peers not seen for this long drop off the list (unless a transfer with them is active). */
+    /** Peers not seen for this long are probed with `/register` and dropped only if that fails (unless a transfer with them is active). */
     const val PEER_EXPIRY_MS = 60_000L
+
+    /** Timeout for the `/register` probe sent to a stale peer. */
+    const val PEER_PROBE_TIMEOUT_MS = 2_000L
+
+    /** Peers only announce at startup, so we re-announce this often; their `/register` replies keep them fresh. */
+    const val REANNOUNCE_INTERVAL_MS = 30_000L
 
     const val MAX_PARALLEL_UPLOADS = 3
 }

@@ -23,7 +23,8 @@ public sealed class PeerEventArgs(Peer peer, bool isNew) : EventArgs
     public bool IsNew { get; } = isNew;
 }
 
-/// <summary>Thread-safe peer list with expiry. Events fire on the calling thread.</summary>
+/// <summary>Thread-safe peer list. Silent peers are found with <see cref="Stale"/> and probed before removal
+/// (see <see cref="DiscoveryService.ExpireStaleAsync"/>). Events fire on the calling thread.</summary>
 public sealed class PeerRegistry
 {
     private readonly object _gate = new();
@@ -73,17 +74,28 @@ public sealed class PeerRegistry
         return peer;
     }
 
-    public void ExpireStale(TimeSpan maxAge)
+    /// <summary>Peers not seen within <paramref name="maxAge"/>, excluding pinned ones.</summary>
+    public IReadOnlyList<Peer> Stale(TimeSpan maxAge)
     {
-        List<Peer> removed;
         lock (_gate)
         {
             var cutoff = _clock() - maxAge;
-            removed = _peers.Values.Where(p => p.LastSeen < cutoff && !(IsPinned?.Invoke(p.Fingerprint) ?? false)).ToList();
-            foreach (var p in removed) _peers.Remove(p.Fingerprint);
+            return _peers.Values.Where(p => p.LastSeen < cutoff && !(IsPinned?.Invoke(p.Fingerprint) ?? false)).ToList();
         }
-        foreach (var p in removed) PeerRemoved?.Invoke(this, new PeerEventArgs(p, false));
-        if (removed.Count > 0) Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Removes <paramref name="peer"/> unless it has been seen again since that snapshot was taken.</summary>
+    public bool Remove(Peer peer)
+    {
+        Peer? removed;
+        lock (_gate)
+        {
+            if (!_peers.TryGetValue(peer.Fingerprint, out removed) || removed.LastSeen > peer.LastSeen) return false;
+            _peers.Remove(peer.Fingerprint);
+        }
+        PeerRemoved?.Invoke(this, new PeerEventArgs(removed, false));
+        Changed?.Invoke(this, EventArgs.Empty);
+        return true;
     }
 
     public void Clear()

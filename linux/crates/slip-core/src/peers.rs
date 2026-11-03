@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use crate::events::Event;
 use crate::model::{DeviceInfo, Protocol};
 
+/// Peers not seen for this long are probed with `/register` and dropped only if that fails.
 pub const PEER_TTL: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone)]
@@ -31,6 +32,8 @@ impl Peer {
     }
 }
 
+pub type Clock = Arc<dyn Fn() -> Instant + Send + Sync>;
+
 #[derive(Clone)]
 pub struct PeerStore {
     inner: Arc<Mutex<HashMap<String, Peer>>>,
@@ -38,15 +41,22 @@ pub struct PeerStore {
     events: Option<async_channel::Sender<Event>>,
     /// Fingerprints that must not expire (active transfers).
     pinned: Arc<Mutex<HashMap<String, usize>>>,
+    clock: Clock,
 }
 
 impl PeerStore {
     pub fn new(own_fingerprints: Vec<String>, events: Option<async_channel::Sender<Event>>) -> Self {
+        Self::with_clock(own_fingerprints, events, Arc::new(Instant::now))
+    }
+
+    /// Like [`PeerStore::new`] with an injectable clock (tests).
+    pub fn with_clock(own_fingerprints: Vec<String>, events: Option<async_channel::Sender<Event>>, clock: Clock) -> Self {
         PeerStore {
             inner: Default::default(),
             own: Arc::new(own_fingerprints),
             events,
             pinned: Default::default(),
+            clock,
         }
     }
 
@@ -59,7 +69,7 @@ impl PeerStore {
         if info.fingerprint.is_empty() || self.is_own(&info.fingerprint) {
             return false;
         }
-        let peer = Peer { info, ip, last_seen: Instant::now() };
+        let peer = Peer { info, ip, last_seen: (self.clock)() };
         self.inner.lock().unwrap().insert(peer.info.fingerprint.clone(), peer.clone());
         if let Some(tx) = &self.events {
             let _ = tx.try_send(Event::PeerUpdated(peer));
@@ -92,22 +102,34 @@ impl PeerStore {
         }
     }
 
-    /// Drop peers not seen within `ttl` (unless pinned). Returns removed fingerprints.
-    pub fn expire(&self, ttl: Duration) -> Vec<String> {
+    /// Peers not seen within `ttl`, excluding pinned ones (see `discovery::expire_stale`).
+    pub fn stale(&self, ttl: Duration) -> Vec<Peer> {
         let pinned = self.pinned.lock().unwrap().clone();
-        let mut map = self.inner.lock().unwrap();
-        let now = Instant::now();
-        let stale: Vec<String> = map
+        let now = (self.clock)();
+        self.inner
+            .lock()
+            .unwrap()
             .iter()
-            .filter(|(fp, p)| now.duration_since(p.last_seen) > ttl && !pinned.contains_key(*fp))
-            .map(|(fp, _)| fp.clone())
-            .collect();
-        for fp in &stale {
-            map.remove(fp);
-            if let Some(tx) = &self.events {
-                let _ = tx.try_send(Event::PeerLost { fingerprint: fp.clone() });
+            .filter(|(fp, p)| now.saturating_duration_since(p.last_seen) > ttl && !pinned.contains_key(*fp))
+            .map(|(_, p)| p.clone())
+            .collect()
+    }
+
+    /// Remove `peer` unless it has been seen again since that snapshot was taken.
+    pub fn remove_if_unseen(&self, peer: &Peer) -> bool {
+        let fp = &peer.info.fingerprint;
+        {
+            let mut map = self.inner.lock().unwrap();
+            match map.get(fp) {
+                Some(p) if p.last_seen <= peer.last_seen => {
+                    map.remove(fp);
+                }
+                _ => return false,
             }
         }
-        stale
+        if let Some(tx) = &self.events {
+            let _ = tx.try_send(Event::PeerLost { fingerprint: fp.clone() });
+        }
+        true
     }
 }

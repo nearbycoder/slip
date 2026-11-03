@@ -11,7 +11,7 @@ public class PeerRegistryTests
     private static DeviceInfo Info(string fp, string alias = "Peer") => new() { Alias = alias, Fingerprint = fp };
 
     [Fact]
-    public void Upsert_ExpireAndPin()
+    public void Stale_SkipsPinned_AndRemoveIgnoresRefreshedPeers()
     {
         var now = DateTimeOffset.UtcNow;
         var registry = new PeerRegistry(() => now);
@@ -24,10 +24,18 @@ public class PeerRegistryTests
 
         now += TimeSpan.FromSeconds(61);
         registry.IsPinned = fp => fp == "b";
-        registry.ExpireStale(TimeSpan.FromSeconds(60));
+        var stale = Assert.Single(registry.Stale(TimeSpan.FromSeconds(60)));
+        Assert.Equal("a", stale.Fingerprint);
+
+        // Seen again while the probe was in flight: the old snapshot must not remove it.
+        registry.Upsert(Info("a"), "10.0.0.1", PeerSource.Register);
+        Assert.False(registry.Remove(stale));
+        Assert.Equal(2, registry.Snapshot().Count);
+
+        Assert.True(registry.Remove(registry.Find("a")!));
         var remaining = Assert.Single(registry.Snapshot());
         Assert.Equal("b", remaining.Fingerprint);
-        Assert.Equal(3, events);
+        Assert.Equal(4, events);
     }
 
     [Fact]
@@ -41,6 +49,69 @@ public class PeerRegistryTests
         now += TimeSpan.FromSeconds(30);
         Assert.Equal("100.64.0.9", registry.Upsert(Info("a"), "100.64.0.9", PeerSource.Multicast).Address);
         Assert.Equal("192.168.1.5", registry.Upsert(Info("a"), "192.168.1.5", PeerSource.Register).Address);
+    }
+}
+
+/// <summary>Stale peers are probed with POST /register before removal.</summary>
+public class PeerExpiryTests
+{
+    private static readonly DeviceInfo Self = new() { Alias = "Us", Fingerprint = "our-fingerprint", Port = 1, Protocol = "http" };
+
+    private static DiscoveryService Discovery(PeerRegistry registry) =>
+        new(() => Self, fp => fp == Self.Fingerprint, registry,
+            new DiscoveryOptions { PeerProbeTimeout = TimeSpan.FromSeconds(2), AutoScanFallback = false });
+
+    [Fact]
+    public async Task StaleReachablePeer_IsRefreshedUnderItsOriginalKey()
+    {
+        using var identity = SlipIdentity.CreateEphemeral();
+        SlipServer server = null!;
+        server = new SlipServer(new ServerOptions { Port = 0, Https = false, BindAddress = IPAddress.Loopback },
+            identity.Certificate,
+            () => new DeviceInfo { Alias = "Reachable", Fingerprint = identity.FingerprintFor(false), Port = server.Port, Protocol = "http" },
+            identity.IsOwnFingerprint, new PeerRegistry());
+        await server.StartAsync();
+        await using var _ = server;
+
+        var now = DateTimeOffset.UtcNow;
+        var registry = new PeerRegistry(() => now);
+        registry.Upsert(new DeviceInfo { Alias = "Old name", Fingerprint = "original-fp", Port = server.Port, Protocol = "http" },
+            "127.0.0.1", PeerSource.Multicast);
+        now += SlipConstants.PeerExpiry + TimeSpan.FromSeconds(1);
+
+        await using var discovery = Discovery(registry);
+        await discovery.ExpireStaleAsync();
+
+        var peer = Assert.Single(registry.Snapshot());
+        Assert.Equal("original-fp", peer.Fingerprint);
+        Assert.Equal(server.Port, peer.Info.Port);
+        Assert.Equal("http", peer.Info.Protocol);
+        Assert.Equal("Reachable", peer.Alias);
+        Assert.Equal(now, peer.LastSeen);
+    }
+
+    [Fact]
+    public async Task StaleUnreachablePeer_IsRemoved_PinnedAndFreshAreKept()
+    {
+        int closedPort;
+        using (var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0))
+        {
+            listener.Start();
+            closedPort = ((IPEndPoint)listener.LocalEndpoint).Port;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var registry = new PeerRegistry(() => now) { IsPinned = fp => fp == "busy" };
+        DeviceInfo Dead(string fp) => new() { Alias = fp, Fingerprint = fp, Port = closedPort, Protocol = "http" };
+        registry.Upsert(Dead("gone"), "127.0.0.1", PeerSource.Multicast);
+        registry.Upsert(Dead("busy"), "127.0.0.1", PeerSource.Multicast);
+        now += SlipConstants.PeerExpiry + TimeSpan.FromSeconds(1);
+        registry.Upsert(Dead("fresh"), "127.0.0.1", PeerSource.Multicast);
+
+        await using var discovery = Discovery(registry);
+        await discovery.ExpireStaleAsync();
+
+        Assert.Equal(["busy", "fresh"], registry.Snapshot().Select(p => p.Fingerprint).Order());
     }
 }
 

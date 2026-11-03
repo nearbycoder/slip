@@ -19,7 +19,7 @@ data class Peer(
     val address: PeerAddress get() = PeerAddress.of(info, ip)
 }
 
-/** Nearby peers keyed by fingerprint, expiring after a period of silence. */
+/** Nearby peers keyed by fingerprint; silent peers are found with [stale] and probed before removal. */
 class PeerRegistry(private val clock: () -> Long = System::currentTimeMillis) {
     private val _peers = MutableStateFlow<List<Peer>>(emptyList())
     val peers: StateFlow<List<Peer>> = _peers.asStateFlow()
@@ -33,10 +33,15 @@ class PeerRegistry(private val clock: () -> Long = System::currentTimeMillis) {
         }
     }
 
-    /** Drops peers not seen within [maxAgeMs], except fingerprints in [keep]. */
-    fun expire(maxAgeMs: Long, keep: Set<String> = emptySet()) {
+    /** Peers not seen within [maxAgeMs], except fingerprints in [keep]. */
+    fun stale(maxAgeMs: Long, keep: Set<String> = emptySet()): List<Peer> {
         val cutoff = clock() - maxAgeMs
-        _peers.update { list -> list.filter { it.lastSeen >= cutoff || it.fingerprint in keep } }
+        return _peers.value.filter { it.lastSeen < cutoff && it.fingerprint !in keep }
+    }
+
+    /** Removes [peer] unless it has been seen again since that snapshot was taken. */
+    fun remove(peer: Peer) {
+        _peers.update { list -> list.filterNot { it.fingerprint == peer.fingerprint && it.lastSeen <= peer.lastSeen } }
     }
 
     fun clear() = _peers.update { emptyList() }

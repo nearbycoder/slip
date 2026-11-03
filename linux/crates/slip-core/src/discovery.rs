@@ -16,6 +16,11 @@ use crate::model::{MulticastDto, Protocol, SharedInfo};
 use crate::net::ipv4_interfaces;
 use crate::peers::{PeerStore, PEER_TTL};
 
+/// Timeout for the `/register` probe sent to a stale peer.
+pub const PEER_PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+/// Peers only announce at startup, so we re-announce this often; their `/register` replies keep them fresh.
+pub const REANNOUNCE_INTERVAL: Duration = Duration::from_secs(30);
+
 #[derive(Debug, Clone, Copy)]
 pub struct DiscoveryConfig {
     pub group: Ipv4Addr,
@@ -99,14 +104,15 @@ impl Discovery {
             d.discoverable.clone(),
             d.interfaces.clone(),
         )));
-        let peers = d.peers.clone();
-        d.tasks.push(tokio::spawn(async move {
-            let mut tick = tokio::time::interval(Duration::from_secs(5));
-            loop {
-                tick.tick().await;
-                peers.expire(PEER_TTL);
-            }
-        }));
+        d.tasks.push(tokio::spawn(maintenance_loop(
+            d.socket.clone(),
+            d.cfg,
+            d.info.clone(),
+            d.peers.clone(),
+            d.client.clone(),
+            d.discoverable.clone(),
+            d.interfaces.clone(),
+        )));
         Ok(Arc::new(d))
     }
 
@@ -207,6 +213,63 @@ async fn listen_loop(
             });
         }
     }
+}
+
+/// Re-announces every [`REANNOUNCE_INTERVAL`] and expires silent peers (after probing them).
+async fn maintenance_loop(
+    socket: Arc<UdpSocket>,
+    cfg: DiscoveryConfig,
+    info: SharedInfo,
+    peers: PeerStore,
+    client: SlipClient,
+    discoverable: Arc<AtomicBool>,
+    ifaces: Vec<Ipv4Addr>,
+) {
+    let tick = Duration::from_secs(5);
+    let mut interval = tokio::time::interval(tick);
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    let mut since_announce = Duration::ZERO;
+    loop {
+        interval.tick().await;
+        since_announce += tick;
+        // Peers only announce at startup, so ask again periodically; their /register replies refresh them.
+        if since_announce >= REANNOUNCE_INTERVAL {
+            since_announce = Duration::ZERO;
+            if discoverable.load(Ordering::Relaxed) {
+                let packet = MulticastDto { info: info.read().unwrap().clone(), announce: true }.to_json();
+                send_multicast(&socket, &cfg, &ifaces, &packet).await;
+            }
+        }
+        expire_stale(&client, &peers, PEER_TTL, PEER_PROBE_TIMEOUT).await;
+    }
+}
+
+/// Probe peers not seen within `ttl` with `POST /register` (concurrently) and drop only those
+/// that don't answer within `timeout`. Answering peers are refreshed under their original
+/// fingerprint, port and protocol; pinned peers (active transfers) are never touched.
+/// Returns the removed fingerprints.
+pub async fn expire_stale(client: &SlipClient, peers: &PeerStore, ttl: Duration, timeout: Duration) -> Vec<String> {
+    let probes = peers.stale(ttl).into_iter().map(|peer| {
+        let client = client.clone();
+        let peers = peers.clone();
+        async move {
+            let reply = tokio::time::timeout(timeout, client.register_with_timeout(&peer.target(), timeout)).await;
+            match reply {
+                Ok(Ok(mut info)) => {
+                    info.fingerprint = peer.info.fingerprint.clone();
+                    info.port = peer.info.port;
+                    info.protocol = peer.info.protocol;
+                    peers.upsert(info, peer.ip);
+                    None
+                }
+                _ => peers.remove_if_unseen(&peer).then(|| {
+                    tracing::debug!("peer {} ({}) is gone", peer.info.alias, peer.address());
+                    peer.info.fingerprint.clone()
+                }),
+            }
+        }
+    });
+    futures_util::future::join_all(probes).await.into_iter().flatten().collect()
 }
 
 /// `POST /register` to every host of each local /24 (≤ 50 concurrent, ~1 s timeout).

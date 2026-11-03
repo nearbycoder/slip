@@ -58,9 +58,16 @@ class Discovery(
         socket = sock
         s.launch { receiveLoop(sock) }
         s.launch {
+            var sinceAnnounce = 0L
             while (isActive) {
                 delay(5_000)
-                registry.expire(SlipConstants.PEER_EXPIRY_MS, activeFingerprints())
+                sinceAnnounce += 5_000
+                // Peers only announce at startup, so ask again periodically; their /register replies refresh them.
+                if (sinceAnnounce >= SlipConstants.REANNOUNCE_INTERVAL_MS) {
+                    sinceAnnounce = 0
+                    if (discoverable()) send(announce = true)
+                }
+                expireStale()
             }
         }
     }
@@ -151,6 +158,28 @@ class Discovery(
                 } catch (e: Exception) {
                     log("register -> $ip failed (${e.message}); answering via multicast")
                     send(announce = false)
+                }
+            }
+        }
+    }
+
+    /**
+     * Drops peers not seen within [maxAgeMs], but only after a direct `/register` probe also fails; peers that answer
+     * are refreshed under their original fingerprint/port/protocol. Peers with an active transfer are never touched.
+     */
+    internal suspend fun expireStale(
+        maxAgeMs: Long = SlipConstants.PEER_EXPIRY_MS,
+        timeoutMs: Long = SlipConstants.PEER_PROBE_TIMEOUT_MS,
+    ) = coroutineScope {
+        for (peer in registry.stale(maxAgeMs, activeFingerprints())) {
+            launch(Dispatchers.IO) {
+                val reply = runCatching { client.register(peer.address, ourInfo(), timeoutMs) }.getOrNull()
+                if (reply != null) {
+                    val fresh = reply.copy(fingerprint = peer.fingerprint, port = peer.info.port, protocol = peer.info.protocol)
+                    registry.upsert(fresh, peer.ip, peer.via)
+                } else {
+                    log("peer ${peer.info.alias} (${peer.address}) is gone")
+                    registry.remove(peer)
                 }
             }
         }
