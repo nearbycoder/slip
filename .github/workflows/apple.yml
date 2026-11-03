@@ -1,0 +1,62 @@
+name: Apple (macOS + iOS)
+
+on:
+  push:
+    branches: [main]
+    paths: ["apple/**", ".github/workflows/apple.yml"]
+  pull_request:
+    paths: ["apple/**", ".github/workflows/apple.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  slipkit:
+    name: SlipKit tests
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apple/SlipKit
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - uses: actions/cache@v4
+        with:
+          path: apple/SlipKit/.build
+          key: slipkit-${{ runner.os }}-${{ hashFiles('apple/SlipKit/Package.resolved') }}
+          restore-keys: slipkit-${{ runner.os }}-
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test
+
+  apps:
+    name: Build apps
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apple
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen
+      - name: Build macOS app
+        run: |
+          set -o pipefail
+          xcodebuild -project Slip.xcodeproj -scheme Slip-macOS \
+            -destination 'generic/platform=macOS' -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 50
+      - name: Build iOS app (Simulator)
+        run: |
+          set -o pipefail
+          xcodebuild -project Slip.xcodeproj -scheme Slip-iOS \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 50

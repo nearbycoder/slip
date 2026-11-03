@@ -1,0 +1,27 @@
+[package]
+name = "slip-gtk"
+description = "Slip for Linux — GTK 4 + libadwaita LocalSend-compatible file sharing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "slip"
+path = "src/main.rs"
+
+[features]
+default = []
+# Opt into newer libadwaita APIs. The baseline is libadwaita 1.5 (GNOME 46).
+adw_1_6 = ["adw/v1_6"]
+
+[dependencies]
+slip-core.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+async-channel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+gtk = { package = "gtk4", version = "0.10", features = ["v4_12"] }
+adw = { package = "libadwaita", version = "0.8", features = ["v1_5"] }

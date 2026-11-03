@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Slip.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Slip">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Custom title bar (content extends into the title bar area). -->
+        <Grid x:Name="AppTitleBar" Height="48" Padding="16,0,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/Slip-32.png" Width="16" Height="16" />
+                <TextBlock Text="Slip" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <NavigationView
+            x:Name="NavView"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="True"
+            PaneDisplayMode="Left"
+            OpenPaneLength="220"
+            SelectionChanged="OnNavigationSelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Receive" Tag="receive">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Download" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Send" Tag="send">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Send" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Transfers" Tag="transfers">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Sync" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <InfoBar
+                    Margin="24,12,24,0"
+                    IsOpen="{x:Bind State.IsStatusOpen, Mode=TwoWay}"
+                    Severity="{x:Bind State.StatusSeverity, Mode=OneWay}"
+                    Title="{x:Bind State.StatusTitle, Mode=OneWay}"
+                    Message="{x:Bind State.StatusMessage, Mode=OneWay}" />
+                <Frame x:Name="ContentFrame" Grid.Row="1" />
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

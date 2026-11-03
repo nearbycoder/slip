@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Slip contributors -->
+<component type="desktop-application">
+  <id>io.github.nearbycoder.Slip</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Slip</name>
+  <summary>Send files to nearby devices</summary>
+  <developer id="io.github.nearbycoder">
+    <name>Slip contributors</name>
+  </developer>
+  <description>
+    <p>
+      Slip sends files, folders and text to nearby devices over your local network —
+      no internet, no accounts, no cloud. It speaks the LocalSend protocol, so it works
+      with LocalSend on Android, iOS, Windows, macOS and Linux as well as with Slip on
+      every platform.
+    </p>
+    <ul>
+      <li>Automatic discovery of nearby devices</li>
+      <li>End-to-end encrypted transfers over HTTPS</li>
+      <li>Drag files onto a device to send them</li>
+      <li>Optional PIN and Quick Save</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.nearbycoder.Slip.desktop</launchable>
+  <url type="homepage">https://nearbycoder.github.io/slip/</url>
+  <url type="bugtracker">https://github.com/nearbycoder/slip/issues</url>
+  <url type="vcs-browser">https://github.com/nearbycoder/slip</url>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#86efac</color>
+    <color type="primary" scheme_preference="dark">#16a34a</color>
+  </branding>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <categories>
+    <category>Network</category>
+    <category>FileTransfer</category>
+  </categories>
+  <keywords>
+    <keyword>LocalSend</keyword>
+    <keyword>share</keyword>
+    <keyword>transfer</keyword>
+  </keywords>
+  <provides>
+    <binary>slip</binary>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-11-03">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(SlipTargetFramework)</TargetFramework>
+    <RootNamespace>Slip.Core</RootNamespace>
+    <AssemblyName>Slip.Core</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Kestrel / minimal APIs for the HTTP(S) receive server. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Single source of truth for alias words, shared with every other Slip client. -->
+    <EmbeddedResource Include="..\..\..\protocol\aliases.json" LogicalName="Slip.Core.aliases.json" Link="Protocol\aliases.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Slip.Core.Tests" />
+  </ItemGroup>
+
+</Project>

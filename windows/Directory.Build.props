@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <!-- Cross-platform target framework for Slip.Core, Slip.Cli and tests. -->
+    <SlipTargetFramework>net10.0</SlipTargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Authors>Slip contributors</Authors>
+    <Product>Slip</Product>
+    <Version>0.1.0</Version>
+    <!-- Allows restoring the Windows-only app project on macOS/Linux. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+</Project>

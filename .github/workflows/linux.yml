@@ -1,0 +1,68 @@
+name: Linux
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "linux/**"
+      - "protocol/**"
+      - ".github/workflows/linux.yml"
+  pull_request:
+    paths:
+      - "linux/**"
+      - "protocol/**"
+      - ".github/workflows/linux.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: linux
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    # Ubuntu 24.04 ships GTK 4.14 + libadwaita 1.5 — the minimum Slip targets.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev libadwaita-1-dev pkg-config \
+            desktop-file-utils appstream
+          pkg-config --modversion gtk4 libadwaita-1
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: linux
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+      - name: Build release
+        run: cargo build --workspace --release --locked
+
+      - name: Validate desktop integration files
+        run: |
+          desktop-file-validate data/io.github.nearbycoder.Slip.desktop
+          appstreamcli validate --no-net --explain data/io.github.nearbycoder.Slip.metainfo.xml
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: slip-linux-x86_64
+          path: |
+            linux/target/release/slip
+            linux/target/release/slip-cli
+            linux/data/
+          if-no-files-found: error

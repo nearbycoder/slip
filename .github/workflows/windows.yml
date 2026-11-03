@@ -1,0 +1,112 @@
+name: Windows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "windows/**"
+      - "protocol/aliases.json"
+      - ".github/workflows/windows.yml"
+  pull_request:
+    paths:
+      - "windows/**"
+      - "protocol/aliases.json"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+
+jobs:
+  core:
+    name: Core tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build core + CLI
+        run: |
+          dotnet build windows/src/Slip.Core/Slip.Core.csproj -c Release
+          dotnet build windows/src/Slip.Cli/Slip.Cli.csproj -c Release
+
+      - name: Test
+        run: dotnet test windows/tests/Slip.Core.Tests/Slip.Core.Tests.csproj -c Release --logger "trx;LogFileName=results.trx" --results-directory windows/TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.os }}
+          path: windows/TestResults
+          if-no-files-found: ignore
+
+  app:
+    name: Slip.App (${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            platform: x64
+            rid: win-x64
+          - arch: arm64
+            platform: ARM64
+            rid: win-arm64
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore windows/src/Slip.App/Slip.App.csproj -r ${{ matrix.rid }} -p:Platform=${{ matrix.platform }}
+
+      - name: Build
+        run: dotnet build windows/src/Slip.App/Slip.App.csproj -c Release -r ${{ matrix.rid }} -p:Platform=${{ matrix.platform }} --no-restore
+
+      - name: Publish app (unpackaged, self-contained)
+        run: >
+          dotnet publish windows/src/Slip.App/Slip.App.csproj -c Release
+          -r ${{ matrix.rid }} -p:Platform=${{ matrix.platform }}
+          --self-contained true
+          -o artifacts/Slip-windows-${{ matrix.arch }}
+
+      - name: Publish CLI (single file)
+        run: >
+          dotnet publish windows/src/Slip.Cli/Slip.Cli.csproj -c Release
+          -r ${{ matrix.rid }} --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -o artifacts/slip-cli-windows-${{ matrix.arch }}
+
+      - name: Upload app
+        uses: actions/upload-artifact@v7
+        with:
+          name: Slip-windows-${{ matrix.arch }}
+          path: artifacts/Slip-windows-${{ matrix.arch }}
+          if-no-files-found: error
+
+      - name: Upload CLI
+        uses: actions/upload-artifact@v7
+        with:
+          name: slip-cli-windows-${{ matrix.arch }}
+          path: artifacts/slip-cli-windows-${{ matrix.arch }}
+          if-no-files-found: error

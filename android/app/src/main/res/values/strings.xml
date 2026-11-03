@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Slip</string>
+    <string name="share_label">Send with Slip</string>
+    <string name="channel_service">Receiving</string>
+    <string name="channel_service_desc">Keeps Slip reachable on the local network</string>
+    <string name="channel_requests">Incoming transfers</string>
+    <string name="channel_requests_desc">Asks before accepting files and shows received messages</string>
+</resources>

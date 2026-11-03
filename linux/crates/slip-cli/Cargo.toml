@@ -1,0 +1,20 @@
+[package]
+name = "slip-cli"
+description = "Headless Slip / LocalSend client: receive, send, discover"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "slip-cli"
+path = "src/main.rs"
+
+[dependencies]
+slip-core.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+async-channel.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap = { version = "4", features = ["derive"] }

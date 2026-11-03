@@ -1,0 +1,137 @@
+# XcodeGen spec — run `xcodegen` in this directory to produce Slip.xcodeproj.
+name: Slip
+options:
+  bundleIdPrefix: io.github.nearbycoder
+  deploymentTarget:
+    macOS: "14.0"
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  SlipKit:
+    path: SlipKit
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    PRODUCT_NAME: Slip
+    PRODUCT_BUNDLE_IDENTIFIER: io.github.nearbycoder.Slip
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    GENERATE_INFOPLIST_FILE: NO
+    DEAD_CODE_STRIPPING: YES
+
+targets:
+  Slip-macOS:
+    type: application
+    platform: macOS
+    sources:
+      - App/Shared
+      - App/macOS
+    dependencies:
+      - package: SlipKit
+        product: SlipKit
+    settings:
+      base:
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_IDENTITY: "-"
+        COMBINE_HIDPI_IMAGES: YES
+    info:
+      path: App/macOS/Info.plist
+      properties:
+        CFBundleDisplayName: Slip
+        CFBundleName: Slip
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.utilities
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "MIT License"
+        NSLocalNetworkUsageDescription: Slip uses the local network to find nearby devices and send or receive files.
+        NSBonjourServices:
+          - _slip._tcp
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: App/macOS/Slip.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.network.server: true
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.files.downloads.read-write: true
+
+  Slip-iOS:
+    type: application
+    platform: iOS
+    sources:
+      - App/Shared
+      - App/iOS
+    dependencies:
+      - package: SlipKit
+        product: SlipKit
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+    info:
+      path: App/iOS/Info.plist
+      properties:
+        CFBundleDisplayName: Slip
+        CFBundleName: Slip
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: ""
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Received files live in Documents and show up in the Files app.
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        NSLocalNetworkUsageDescription: Slip uses the local network to find nearby devices and send or receive files.
+        NSBonjourServices:
+          - _slip._tcp
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Any file
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.item
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: App/iOS/Slip.entitlements
+      properties:
+        # Requires Apple approval (https://developer.apple.com/contact/request/networking-multicast).
+        com.apple.developer.networking.multicast: true
+
+schemes:
+  Slip-macOS:
+    build:
+      targets:
+        Slip-macOS: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  Slip-iOS:
+    build:
+      targets:
+        Slip-iOS: all
+    run:
+      config: Debug
+    archive:
+      config: Release

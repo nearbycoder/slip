@@ -1,0 +1,36 @@
+[package]
+name = "slip-core"
+description = "LocalSend v2 protocol core for Slip (discovery, server, client) — no UI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+tokio-util.workspace = true
+futures-util.workspace = true
+async-channel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio"] }
+axum-server = { version = "0.7", features = ["tls-rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rustls-pki-types = { version = "1.10", features = ["std"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+rcgen = { version = "0.13", default-features = false, features = ["ring", "pem", "crypto"] }
+time = "0.3"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1", features = ["v4"] }
+socket2 = { version = "0.5", features = ["all"] }
+if-addrs = "0.13"
+dirs = "5"
+filetime = "0.2"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+rand = "0.8"
+mime_guess = "2"
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"

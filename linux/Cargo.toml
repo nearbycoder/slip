@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = ["crates/slip-core", "crates/slip-cli", "crates/slip-gtk"]
+default-members = ["crates/slip-core", "crates/slip-cli", "crates/slip-gtk"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/nearbycoder/slip"
+
+[workspace.dependencies]
+slip-core = { path = "crates/slip-core" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs", "io-util", "sync", "time", "signal"] }
+tokio-util = { version = "0.7", features = ["io"] }
+futures-util = "0.3"
+async-channel = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true

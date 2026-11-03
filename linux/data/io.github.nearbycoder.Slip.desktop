@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Slip
+GenericName=File Sharing
+Comment=Send files and text to nearby devices (LocalSend compatible)
+Exec=slip %U
+Icon=io.github.nearbycoder.Slip
+Terminal=false
+Categories=Network;FileTransfer;GTK;GNOME;
+Keywords=share;send;receive;transfer;airdrop;localsend;lan;
+StartupNotify=true
+SingleMainWindow=true
+X-GNOME-UsesNotifications=true

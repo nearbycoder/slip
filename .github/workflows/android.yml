@@ -1,0 +1,55 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", "protocol/**", ".github/workflows/android.yml"]
+  pull_request:
+    paths: ["android/**", "protocol/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform
+        # AGP also downloads missing components itself; this just makes it explicit and cached per run.
+        run: yes | sdkmanager "platforms;android-37.2" "build-tools;36.0.0" || true
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test core and build debug APK
+        run: ./gradlew --no-daemon :core:test :app:assembleDebug :cli:installDist
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-reports
+          path: android/core/build/reports/tests
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: slip-android-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

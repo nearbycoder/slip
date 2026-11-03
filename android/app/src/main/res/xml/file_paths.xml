@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Legacy (API < 29) public Download/Slip and the app-specific fallback. -->
+    <external-path name="downloads" path="Download/" />
+    <external-files-path name="app_downloads" path="Download/" />
+</paths>

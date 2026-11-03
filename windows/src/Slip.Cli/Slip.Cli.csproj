@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(SlipTargetFramework)</TargetFramework>
+    <RootNamespace>Slip.Cli</RootNamespace>
+    <AssemblyName>slip-cli</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Slip.Core\Slip.Core.csproj" />
+  </ItemGroup>
+
+</Project>
