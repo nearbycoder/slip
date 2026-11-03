@@ -6,6 +6,22 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Slip</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Any file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.item</string>
+				<string>public.folder</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -34,5 +50,26 @@
 	<string>MIT License</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Slip uses the local network to find nearby devices and send or receive files.</string>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Send with Slip</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>sendFiles</string>
+			<key>NSPortName</key>
+			<string>Slip</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.item</string>
+				<string>public.folder</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

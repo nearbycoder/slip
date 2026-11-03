@@ -55,6 +55,24 @@ targets:
         NSBonjourServices:
           - _slip._tcp
         ITSAppUsesNonExemptEncryption: false
+        # Accept any file dropped on the Dock icon or chosen with Open With.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Any file
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.item
+              - public.folder
+        # Finder › Services › Send with Slip
+        NSServices:
+          - NSMenuItem:
+              default: Send with Slip
+            NSMessage: sendFiles
+            NSPortName: Slip
+            NSRequiredContext: {}
+            NSSendFileTypes:
+              - public.item
+              - public.folder
     entitlements:
       path: App/macOS/Slip.entitlements
       properties:

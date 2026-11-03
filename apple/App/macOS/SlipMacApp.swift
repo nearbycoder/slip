@@ -7,10 +7,30 @@ enum AppModel {
     static let controller = SlipController()
     static let selection = SendSelection()
     static var openMainWindow: (() -> Void)?
+
+    static func queueForSending(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
+        selection.add(urls: urls)
+        if !NSApp.windows.contains(where: { $0.identifier?.rawValue == "main" && $0.isVisible }) { openMainWindow?() }
+        NotificationCenter.default.post(name: .slipSelectPane, object: SidebarItem.send.rawValue)
+        NSApp.activate()
+    }
+}
+
+/// Handles Finder › Services › Send with Slip.
+final class ServicesProvider: NSObject {
+    static let shared = ServicesProvider()
+
+    @objc func sendFiles(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+        MainActor.assumeIsolated { AppModel.queueForSending(urls) }
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.servicesProvider = ServicesProvider.shared
+        NSUpdateDynamicServices()
         MainActor.assumeIsolated {
             let controller = AppModel.controller
             SlipNotifications.shared.setUp(controller: controller)
@@ -26,6 +46,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if !Welcome.isNeeded { Task { await controller.start() } }
         }
+    }
+
+    /// Files dropped on the Dock icon or opened with Slip go to the Send tray.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        MainActor.assumeIsolated { AppModel.queueForSending(urls) }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -105,7 +130,7 @@ private struct MenuBarLabel: View {
     @Environment(SlipController.self) private var controller
 
     var body: some View {
-        Image(systemName: controller.activeTransfers.isEmpty ? "paperplane" : "paperplane.fill")
+        Image(controller.activeTransfers.isEmpty ? "MenuBarIcon" : "MenuBarIconActive")
     }
 }
 
