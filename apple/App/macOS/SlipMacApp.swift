@@ -77,6 +77,7 @@ struct SlipMacApp: App {
         } label: {
             MenuBarLabel().environment(controller)
         }
+        .menuBarExtraStyle(.window)
     }
 }
 
@@ -84,8 +85,7 @@ private struct SettingsWindow: View {
     @Environment(SlipController.self) private var controller
 
     var body: some View {
-        SettingsView()
-            .frame(width: 520, height: 600)
+        MacSettingsView()
             .preferredColorScheme(controller.settings.theme.colorScheme)
             .tint(Color.slipGreen)
     }
@@ -124,9 +124,19 @@ struct MacRootView: View {
     @Environment(SlipController.self) private var controller
     @Environment(SendSelection.self) private var selection
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
     // `-SlipTab send` opens a specific pane (developer override, like `-SlipPort`).
     @State private var item: SidebarItem? = SidebarItem(rawValue: UserDefaults.standard.string(forKey: "SlipTab") ?? "") ?? .receive
     @AppStorage(MenuBarKey.showExtra) private var showMenuBarExtra = true
+
+    @ViewBuilder
+    private var detail: some View {
+        switch item ?? .receive {
+        case .receive: MacReceiveView()
+        case .send: MacSendView()
+        case .transfers: TransfersView()
+        }
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -145,7 +155,7 @@ struct MacRootView: View {
                             .selectionDisabled()
                     }
                     ForEach(controller.peers) { peer in
-                        Label(peer.info.alias, systemImage: (peer.info.deviceType ?? .desktop).symbolName)
+                        Label(peer.info.alias, systemImage: DeviceSymbol.name(type: peer.info.deviceType ?? .desktop, model: peer.info.deviceModel))
                             .selectionDisabled()
                             .dropDestination(for: URL.self) { urls, _ in
                                 if let items = try? SendItem.items(for: urls) { controller.send(items, to: peer) }
@@ -159,21 +169,41 @@ struct MacRootView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) { SidebarStatus() }
             .navigationSplitViewColumnWidth(min: 200, ideal: 230)
         } detail: {
-            switch item ?? .receive {
-            case .receive: MacReceiveView()
-            case .send: MacSendView()
-            case .transfers: TransfersView()
+            #if DEBUG
+            if UserDefaults.standard.string(forKey: "SlipPreview") == "request", let request = controller.pendingRequest {
+                // Design review: the incoming-request sheet rendered in place.
+                IncomingRequestView(request: request).frame(width: 440).fixedSize(horizontal: false, vertical: true)
+            } else if UserDefaults.standard.string(forKey: "SlipPreview") == "menubar" {
+                MenuBarContent().background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+            } else {
+                detail
             }
+            #else
+            detail
+            #endif
         }
         .onAppear {
             AppModel.openMainWindow = { [openWindow] in openWindow(id: "main") }
             showMenuBarExtra = controller.settings.showMenuBarExtra
+            #if DEBUG
+            if UserDefaults.standard.bool(forKey: "SlipOpenSettings") { openSettings() }
+            #endif
         }
         .onChange(of: controller.settings.showMenuBarExtra) { _, shown in showMenuBarExtra = shown }
         .onChange(of: showMenuBarExtra) { _, shown in
             if controller.settings.showMenuBarExtra != shown { controller.settings.showMenuBarExtra = shown }
         }
-        .task { await controller.start() }
+        .task {
+            #if DEBUG
+            if UserDefaults.standard.bool(forKey: "SlipDemoSelection"), selection.isEmpty {
+                selection.add(.data(Data(count: 4_404_019), fileName: "IMG_3001.heic", mimeType: "image/heic"))
+                selection.add(.data(Data(count: 92_274_688), fileName: "Tram 28.mov", mimeType: "video/quicktime"))
+                selection.add(.data(Data(count: 812_000), fileName: "Restaurants.pdf", mimeType: "application/pdf"))
+                selection.addText("See you at the tram stop at 6!")
+            }
+            #endif
+            await controller.start()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .slipAddFiles)) { _ in
             item = .send
             let panel = NSOpenPanel()
@@ -185,45 +215,140 @@ struct MacRootView: View {
     }
 }
 
+/// The menu bar panel: status, live transfers and one-click sending to nearby devices.
 struct MenuBarContent: View {
     @Environment(SlipController.self) private var controller
-    @Environment(SendSelection.self) private var selection
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Text("\(controller.settings.alias) — \(controller.isRunning ? "receiving" : "offline")")
-        if let ip = controller.localAddresses.first { Text("\(ip):\(String(controller.deviceInfo.port))") }
-        Divider()
-        if !controller.activeTransfers.isEmpty {
-            ForEach(controller.activeTransfers) { t in
-                Text("\(t.direction == .incoming ? "↓" : "↑") \(t.peerAlias) \(Int(t.fraction * 100))%")
+        @Bindable var controller = controller
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(controller.settings.alias).font(.headline)
+                    HStack(spacing: 5) {
+                        Circle().fill(live ? Color.slipGreen : Color.secondary).frame(width: 6, height: 6)
+                        Text(live ? (controller.localAddresses.first ?? "Receiving") : "Not receiving")
+                            .monospacedDigit()
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Toggle("Quick Save", isOn: $controller.settings.quickSave)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .font(.caption)
+                    .help("Accept incoming files without asking")
             }
-            Divider()
-        }
-        Menu("Send Files To") {
-            if controller.peers.isEmpty { Text("No devices found") }
-            ForEach(controller.peers) { peer in
-                Button(peer.info.alias) {
-                    let panel = NSOpenPanel()
-                    panel.canChooseFiles = true
-                    panel.canChooseDirectories = true
-                    panel.allowsMultipleSelection = true
-                    NSApp.activate()
-                    if panel.runModal() == .OK, let items = try? SendItem.items(for: panel.urls) {
-                        controller.send(items, to: peer)
+
+            if !controller.activeTransfers.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(controller.activeTransfers) { t in
+                        HStack(spacing: 8) {
+                            DeviceAvatar(alias: t.peerAlias, type: t.peerDeviceType, model: t.peerModel, size: 24)
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack {
+                                    Text("\(t.direction == .incoming ? "From" : "To") \(t.peerAlias)").font(.callout)
+                                    Spacer()
+                                    Text("\(Int(t.fraction * 100))%").font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                                }
+                                ProgressView(value: t.fraction).tint(Color.slipGreen).controlSize(.small)
+                            }
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Nearby").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                if controller.peers.isEmpty {
+                    Text(controller.isScanning ? "Looking for devices…" : "No devices found")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                } else {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 68), spacing: 6)], spacing: 6) {
+                        ForEach(controller.peers) { peer in
+                            MenuBarPeer(peer: peer)
+                        }
                     }
                 }
             }
+
+            Divider()
+
+            HStack {
+                Button("Open Slip") {
+                    openWindow(id: "main")
+                    NSApp.activate()
+                }
+                Spacer()
+                Button("Downloads", systemImage: "folder") { Platform.reveal(controller.saveDirectory) }
+                    .labelStyle(.iconOnly)
+                    .help("Show received files")
+                SettingsLink { Image(systemName: "gearshape") }
+                    .help("Settings")
+                Button("Quit", systemImage: "power") { NSApp.terminate(nil) }
+                    .labelStyle(.iconOnly)
+                    .help("Quit Slip")
+            }
+            .buttonStyle(.borderless)
         }
-        Button("Refresh Devices") { controller.refresh() }
-        Toggle("Quick Save", isOn: Binding(get: { controller.settings.quickSave }, set: { controller.settings.quickSave = $0 }))
-        Divider()
-        Button("Open Slip") {
-            openWindow(id: "main")
-            NSApp.activate()
+        .padding(14)
+        .frame(width: 320)
+    }
+
+    private var live: Bool { controller.isRunning && controller.serverError == nil }
+}
+
+private struct MenuBarPeer: View {
+    @Environment(SlipController.self) private var controller
+    let peer: DiscoveredPeer
+    @State private var targeted = false
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: pickAndSend) {
+            VStack(spacing: 5) {
+                DeviceAvatar(peer: peer, size: 38)
+                    .scaleEffect(targeted ? 1.1 : 1)
+                Text(peer.info.alias)
+                    .font(.caption)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(targeted ? Color.slipGreen.opacity(0.18) : (hovering ? Color.primary.opacity(0.06) : .clear))
+            )
+            .contentShape(Rectangle())
         }
-        Button("Show Downloads") { Platform.reveal(controller.saveDirectory) }
-        Divider()
-        Button("Quit Slip") { NSApp.terminate(nil) }.keyboardShortcut("q")
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help("Send files to \(peer.info.alias), or drop them here")
+        .dropDestination(for: URL.self) { urls, _ in
+            if let items = try? SendItem.items(for: urls) { controller.send(items, to: peer) }
+            return true
+        } isTargeted: { targeted = $0 }
+        .animation(.snappy(duration: 0.2), value: targeted)
+    }
+
+    private func pickAndSend() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Send"
+        panel.message = "Choose files or folders to send to \(peer.info.alias)"
+        NSApp.activate()
+        if panel.runModal() == .OK, let items = try? SendItem.items(for: panel.urls) {
+            controller.send(items, to: peer)
+        }
     }
 }

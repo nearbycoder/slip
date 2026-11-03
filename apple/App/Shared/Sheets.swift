@@ -8,35 +8,65 @@ struct IncomingRequestView: View {
     @State private var selected: Set<String> = []
 
     var body: some View {
-        VStack(spacing: 16) {
-            DeviceIcon(type: request.sender.deviceType ?? .desktop, size: 56)
-            VStack(spacing: 4) {
-                Text(request.sender.alias).font(.title2.weight(.semibold))
-                Text("wants to send you \(request.files.count) file\(request.files.count == 1 ? "" : "s") · \(Format.bytes(selectedSize))")
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                DeviceAvatar(info: request.sender, size: 64)
+                    .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                Text(request.sender.alias)
+                    .font(.title2.weight(.semibold))
+                Text(summary)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
-                if let model = request.sender.deviceModel {
-                    Text("\(model) · \(request.senderIP)").font(.caption).foregroundStyle(.secondary)
-                }
+                    .multilineTextAlignment(.center)
+                Text([request.sender.deviceModel, request.senderIP].compactMap { $0 }.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-            List(request.files) { file in
-                Toggle(isOn: Binding(get: { selected.contains(file.id) },
-                                     set: { on in if on { selected.insert(file.id) } else { selected.remove(file.id) } })) {
-                    HStack {
-                        Text(file.fileName).lineLimit(1).truncationMode(.middle)
-                        Spacer()
-                        Text(Format.bytes(file.size)).foregroundStyle(.secondary).font(.caption)
+            .padding(.top, 28)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 18)
+
+            HStack {
+                Text("\(selected.count) of \(request.files.count) selected · \(Format.bytes(selectedSize))")
+                    .monospacedDigit()
+                Spacer()
+                Button(allSelected ? "Select None" : "Select All") {
+                    selected = allSelected ? [] : Set(request.files.map(\.id))
+                }
+                .buttonStyle(.borderless)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 6)
+
+            ScrollView {
+                VStack(spacing: 2) {
+                    ForEach(request.files) { file in
+                        FileChoiceRow(file: file, isOn: selected.contains(file.id)) {
+                            if selected.contains(file.id) { selected.remove(file.id) } else { selected.insert(file.id) }
+                        }
                     }
                 }
+                .padding(6)
             }
-            .frame(minHeight: 120, idealHeight: 220)
-            HStack {
-                Button(role: .destructive) { controller.decline() } label: {
+            .frame(minHeight: 120, idealHeight: CGFloat(min(request.files.count, 6)) * 46 + 12, maxHeight: 300)
+            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(.horizontal, 20)
+
+            Label("Saves to \(saveLocation)", systemImage: "folder")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 12)
+
+            HStack(spacing: 10) {
+                Button(role: .cancel) { controller.decline() } label: {
                     Text("Decline").frame(maxWidth: .infinity)
                 }
                 .keyboardShortcut(.cancelAction)
                 .slipGlassButton()
                 Button { controller.accept(fileIds: selected) } label: {
-                    Text("Accept").frame(maxWidth: .infinity)
+                    Text(allSelected ? "Accept" : "Accept \(selected.count)").frame(maxWidth: .infinity)
                 }
                 .keyboardShortcut(.defaultAction)
                 .slipGlassProminentButton()
@@ -44,14 +74,71 @@ struct IncomingRequestView: View {
                 .disabled(selected.isEmpty)
             }
             .controlSize(.large)
+            .padding(20)
         }
-        .padding(24)
-        .frame(minWidth: 380, idealWidth: 440)
+        #if os(macOS)
+        .frame(minWidth: 400, idealWidth: 440)
+        #else
+        .presentationDetents([.fraction(0.8), .large])
+        .presentationDragIndicator(.visible)
+        #endif
         .onAppear { selected = Set(request.files.map(\.id)) }
         .interactiveDismissDisabled()
     }
 
+    private var allSelected: Bool { selected.count == request.files.count }
     private var selectedSize: Int64 { request.files.filter { selected.contains($0.id) }.reduce(0) { $0 + $1.size } }
+
+    private var summary: String {
+        let n = request.files.count
+        return "wants to send you \(n == 1 ? "a file" : "\(n) files") (\(Format.bytes(request.totalSize)))"
+    }
+
+    private var saveLocation: String {
+        #if os(macOS)
+        controller.saveDirectory.lastPathComponent
+        #else
+        "Files › Slip"
+        #endif
+    }
+}
+
+private struct FileChoiceRow: View {
+    let file: FileDto
+    let isOn: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        Button(action: toggle) {
+            HStack(spacing: 10) {
+                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(isOn ? Color.white : Color.secondary, isOn ? Color.slipGreen : Color.secondary)
+                    .contentTransition(.symbolEffect(.replace))
+                FileGlyph(fileName: file.fileName, mimeType: file.fileType, size: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text((file.fileName as NSString).lastPathComponent)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    let folder = (file.fileName as NSString).deletingLastPathComponent
+                    if !folder.isEmpty {
+                        Text(folder).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 8)
+                Text(Format.bytes(file.size))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
 }
 
 struct MessageView: View {

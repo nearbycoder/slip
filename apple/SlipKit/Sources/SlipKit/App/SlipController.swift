@@ -83,6 +83,12 @@ public final class SlipController {
 
     public func start() async {
         guard !isRunning, !isStarting else { return }
+        #if DEBUG
+        if let mode = UserDefaults.standard.string(forKey: "SlipDemo") {
+            loadDemoContent(showRequest: mode == "request")
+            return
+        }
+        #endif
         isStarting = true
         defer { isStarting = false }
         resolveSaveDirectoryBookmark()
@@ -474,3 +480,60 @@ final class InfoBox: @unchecked Sendable {
         set { lock.lock(); _value = newValue; lock.unlock() }
     }
 }
+
+#if DEBUG
+// MARK: - Demo content
+
+extension SlipController {
+    /// Fills the UI with realistic sample state for screenshots and design work, without touching
+    /// the network. Enabled with `-SlipDemo YES` (or `-SlipDemo request` to also show an incoming request).
+    func loadDemoContent(showRequest: Bool) {
+        func device(_ alias: String, _ model: String, _ type: DeviceType, _ proto: TransportProtocol = .https) -> DeviceInfo {
+            DeviceInfo(alias: alias, deviceModel: model, deviceType: type, fingerprint: UUID().uuidString, protocol: proto)
+        }
+        isRunning = true
+        localAddresses = ["192.168.1.24"]
+        peers = [
+            DiscoveredPeer(info: device("Fresh Peach", "iPhone", .mobile), ip: "192.168.1.31"),
+            DiscoveredPeer(info: device("Kind Melon", "Windows", .desktop), ip: "192.168.1.40"),
+            DiscoveredPeer(info: device("Neat Lemon", "Pixel 9", .mobile), ip: "192.168.1.52"),
+            DiscoveredPeer(info: device("Solid Pear", "Linux", .desktop, .http), ip: "192.168.1.63"),
+        ]
+
+        func file(_ name: String, _ mb: Double, done: Double, _ status: TransferStatus) -> TransferFile {
+            let f = TransferFile(id: UUID().uuidString, name: name, size: Int64(mb * 1_048_576))
+            f.transferred = Int64(Double(f.size) * done)
+            f.status = status
+            return f
+        }
+        let sending = Transfer(direction: .outgoing, peer: peers[0].info, files: [
+            file("IMG_2041.heic", 4.2, done: 1, .completed),
+            file("IMG_2042.heic", 3.8, done: 1, .completed),
+            file("Drone flyover.mov", 186, done: 0.46, .inProgress),
+            file("Itinerary.pdf", 1.1, done: 0, .waiting),
+        ], status: .inProgress)
+        let received = Transfer(direction: .incoming, peer: peers[1].info, files: [
+            file("Quarterly report.pdf", 2.4, done: 1, .completed),
+            file("Budget 2027.xlsx", 0.6, done: 1, .completed),
+        ], status: .completed)
+        received.finishedAt = received.startedAt.addingTimeInterval(1.4)
+        received.saveDirectory = saveDirectory
+        let declined = Transfer(direction: .outgoing, peer: peers[2].info, files: [
+            file("Playlist.m3u", 0.01, done: 0, .declined),
+        ], status: .declined)
+        declined.finishedAt = Date()
+        transfers = [sending, received, declined]
+        messages = [ReceivedMessage(text: "Here's the Wi-Fi password for the cabin: ponderosa-pine-42", senderAlias: "Fresh Peach")]
+
+        if showRequest {
+            pendingRequest = IncomingRequest(id: UUID(), sender: device("Clever Mango", "MacBook Pro", .desktop),
+                                             senderIP: "192.168.1.18", files: [
+                FileDto(fileName: "Lisbon/IMG_3001.heic", size: 4_404_019, fileType: "image/heic"),
+                FileDto(fileName: "Lisbon/IMG_3002.heic", size: 3_984_588, fileType: "image/heic"),
+                FileDto(fileName: "Lisbon/Tram 28.mov", size: 92_274_688, fileType: "video/quicktime"),
+                FileDto(fileName: "Lisbon/Restaurants.pdf", size: 812_000, fileType: "application/pdf"),
+            ])
+        }
+    }
+}
+#endif

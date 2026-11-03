@@ -14,20 +14,39 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var controller = controller
         Form {
-            Section("Device") {
-                TextField("Device name", text: $aliasText)
-                    .onSubmit(commitAlias)
-                    .autocorrectionDisabled()
-                Button("Random name") {
-                    aliasText = AliasGenerator.random()
-                    commitAlias()
+            Section {
+                HStack(spacing: 14) {
+                    DeviceAvatar(alias: aliasText.isEmpty ? controller.settings.alias : aliasText, type: .mobile, model: "iPhone", size: 44)
+                    TextField("Device name", text: $aliasText)
+                        .font(.headline)
+                        .onSubmit(commitAlias)
+                        .autocorrectionDisabled()
+                    Button("Shuffle", systemImage: "shuffle") {
+                        withAnimation { aliasText = AliasGenerator.random() }
+                        commitAlias()
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
                 }
-                Toggle("Discoverable", isOn: $controller.settings.discoverable)
+                Toggle(isOn: $controller.settings.discoverable) {
+                    Text("Discoverable")
+                    Text("Nearby devices can see you and send to you.")
+                }
+            } header: {
+                Text("Device")
+            } footer: {
+                Text("This is how other devices see you.")
             }
 
             Section("Receiving") {
-                Toggle("Quick Save (accept automatically)", isOn: $controller.settings.quickSave)
-                Toggle("Require PIN", isOn: $controller.settings.requirePin)
+                Toggle(isOn: $controller.settings.quickSave) {
+                    Text("Quick Save")
+                    Text("Accept incoming files without asking.")
+                }
+                Toggle(isOn: $controller.settings.requirePin) {
+                    Text("Require a PIN")
+                    Text("Senders must enter it before sending you anything.")
+                }
                 if controller.settings.requirePin {
                     TextField("PIN", text: $controller.settings.pin)
                         #if os(iOS)
@@ -59,7 +78,10 @@ struct SettingsView: View {
                     #if os(iOS)
                     .keyboardType(.numberPad)
                     #endif
-                Toggle("Encryption (HTTPS)", isOn: $controller.settings.useHTTPS)
+                Toggle(isOn: $controller.settings.useHTTPS) {
+                    Text("Encrypt Transfers (HTTPS)")
+                    Text("Turn off only for very old LocalSend devices.")
+                }
                 LabeledContent("Fingerprint") {
                     Text(controller.deviceInfo.fingerprint.prefix(24) + "…")
                         .font(.caption.monospaced())

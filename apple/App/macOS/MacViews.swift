@@ -58,26 +58,9 @@ struct MacReceiveView: View {
                 }
             }
 
-            if !controller.messages.isEmpty {
-                Section("Messages") {
-                    ForEach(controller.messages) { m in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "text.bubble.fill").foregroundStyle(Color.slipGreen)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(m.text).textSelection(.enabled)
-                                Text("\(m.senderAlias) · \(m.date.formatted(date: .omitted, time: .shortened))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Button("Copy", systemImage: "doc.on.doc") { Platform.copy(m.text) }
-                                .labelStyle(.iconOnly)
-                                .buttonStyle(.borderless)
-                                .help("Copy")
-                        }
-                    }
-                }
-            }
+            RecentlyReceived(open: Platform.open)
+
+            MessagesSection()
         }
         .formStyle(.grouped)
         .navigationTitle("Receive")
@@ -97,60 +80,6 @@ struct MacReceiveView: View {
     }
 }
 
-/// App icon on a glass disc with radar pulses while the receiver is live.
-private struct ReceiveHero: View {
-    @Environment(SlipController.self) private var controller
-    @State private var pulse = false
-
-    private var live: Bool { controller.isRunning && controller.serverError == nil && controller.settings.discoverable }
-
-    var body: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                ForEach(0..<3) { i in
-                    Circle()
-                        .stroke(Color.slipGreen.opacity(0.35), lineWidth: 1)
-                        .frame(width: 112, height: 112)
-                        .scaleEffect(pulse ? 2.1 : 1)
-                        .opacity(pulse ? 0 : 1)
-                        .animation(.easeOut(duration: 3).repeatForever(autoreverses: false).delay(Double(i)),
-                                   value: pulse)
-                        .opacity(live ? 1 : 0)
-                }
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 76, height: 76)
-                    .frame(width: 112, height: 112)
-                    .slipGlass(in: Circle(), tint: Color.slipGreen.opacity(0.18))
-                    .saturation(live ? 1 : 0)
-            }
-            .frame(height: 190)
-
-            VStack(spacing: 6) {
-                Text(controller.settings.alias)
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.primary)
-                HStack(spacing: 7) {
-                    Circle()
-                        .fill(live ? Color.slipGreen : Color.secondary)
-                        .frame(width: 7, height: 7)
-                    Text(live ? "Visible to nearby devices" : (controller.isRunning ? "Not visible" : "Starting…"))
-                }
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .slipGlass(in: Capsule())
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 8)
-        .padding(.bottom, 20)
-        .textCase(nil)
-        .onAppear { pulse = true }
-    }
-}
-
 // MARK: - Send
 
 /// Send pane: native device list with a floating glass selection tray.
@@ -166,7 +95,9 @@ struct MacSendView: View {
         List {
             Section {
                 ForEach(controller.peers) { peer in
-                    MacDeviceRow(peer: peer, canSend: !selection.isEmpty) { send(to: peer) } onDrop: { urls in
+                    MacDeviceRow(peer: peer, canSend: !selection.isEmpty) {
+                        selection.isEmpty ? pickAndSend(to: peer) : send(to: peer)
+                    } onDrop: { urls in
                         send(urls: urls, to: peer)
                     }
                 }
@@ -254,6 +185,16 @@ struct MacSendView: View {
         }
     }
 
+    private func pickAndSend(to peer: DiscoveredPeer) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Send"
+        panel.message = "Choose files or folders to send to \(peer.info.alias)"
+        if panel.runModal() == .OK { send(urls: panel.urls, to: peer) }
+    }
+
     private func pickFiles() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
@@ -274,18 +215,15 @@ private struct MacDeviceRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: (peer.info.deviceType ?? .desktop).symbolName)
-                .font(.system(size: 20, weight: .regular))
-                .foregroundStyle(Color.slipGreen)
-                .frame(width: 44, height: 44)
-                .slipGlass(in: RoundedRectangle(cornerRadius: 12, style: .continuous),
-                           tint: Color.slipGreen.opacity(targeted ? 0.35 : 0.08))
+            DeviceAvatar(peer: peer, size: 44)
+                .scaleEffect(targeted ? 1.08 : 1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(peer.info.alias).font(.headline)
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text([peer.info.deviceModel, peer.ip].compactMap { $0 }.joined(separator: " · "))
                     if peer.info.protocol == .http {
-                        Image(systemName: "lock.open").help("Unencrypted (HTTP)")
+                        Image(systemName: "lock.open")
+                            .help("This device doesn't use encryption (HTTP)")
                     }
                 }
                 .font(.subheadline)
@@ -293,28 +231,48 @@ private struct MacDeviceRow: View {
             }
             Spacer()
             if targeted {
-                Label("Drop to send", systemImage: "arrow.down.doc")
-                    .font(.callout.weight(.medium))
+                Label("Drop to Send", systemImage: "arrow.down.doc.fill")
+                    .font(.callout.weight(.semibold))
                     .foregroundStyle(Color.slipGreen)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
             } else if canSend {
                 Button("Send", systemImage: "paperplane.fill", action: onSend)
-                    .slipGlassProminentButton()
-                    .controlSize(.large)
-            } else if hovering {
-                Text("Drop files to send")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.slipGreen)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            } else {
+                Button("Send…", action: onSend)
+                    .buttonStyle(.bordered)
+                    .opacity(hovering ? 1 : 0.75)
+                    .help("Choose files to send to \(peer.info.alias), or drop them here")
             }
         }
         .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(targeted ? Color.slipGreen.opacity(0.14) : (hovering ? Color.primary.opacity(0.05) : .clear))
+        }
+        .overlay {
+            if targeted {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.slipGreen.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            }
+        }
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
+        .onTapGesture(count: 2, perform: onSend)
         .dropDestination(for: URL.self) { urls, _ in
             onDrop(urls)
             return true
         } isTargeted: { targeted = $0 }
-        .animation(.snappy, value: targeted)
-        .animation(.snappy, value: canSend)
+        .animation(.snappy(duration: 0.2), value: targeted)
+        .animation(.snappy(duration: 0.2), value: canSend)
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+        .accessibilityElement(children: .combine)
+        .accessibilityAction(named: "Send", onSend)
     }
 }
 
@@ -326,54 +284,58 @@ private struct SelectionTray: View {
     let pickFiles: () -> Void
 
     var body: some View {
-        SlipGlassContainer(spacing: 10) {
-            HStack(spacing: 12) {
-                if selection.isEmpty {
-                    Image(systemName: targeted ? "arrow.down.doc.fill" : "tray.and.arrow.up")
-                        .font(.title2)
-                        .foregroundStyle(targeted ? Color.slipGreen : Color.secondary)
-                        .contentTransition(.symbolEffect(.replace))
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(targeted ? "Drop to add" : "Nothing selected").font(.headline)
-                        Text("Drag files here, or add files, text or the clipboard.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 12)
-                    Button("Add Files…", systemImage: "plus", action: pickFiles)
-                        .slipGlassProminentButton()
-                        .controlSize(.large)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(selection.items) { item in
-                                SelectionChip(item: item) { withAnimation(.snappy) { selection.remove(item) } }
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                    .scrollClipDisabled()
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("\(selection.items.count) item\(selection.items.count == 1 ? "" : "s")").font(.headline)
-                        Text(Format.bytes(selection.totalSize)).font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    .monospacedDigit()
-                    .fixedSize()
-                    Button("Clear", systemImage: "xmark") { withAnimation(.snappy) { selection.clear() } }
-                        .labelStyle(.iconOnly)
-                        .slipGlassButton()
-                        .controlSize(.large)
-                        .help("Clear selection")
+        HStack(spacing: 12) {
+            if selection.isEmpty {
+                Image(systemName: targeted ? "arrow.down.doc.fill" : "tray.and.arrow.up")
+                    .font(.title2)
+                    .foregroundStyle(targeted ? Color.slipGreen : Color.secondary)
+                    .contentTransition(.symbolEffect(.replace))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(targeted ? "Drop to add" : "Nothing selected").font(.headline)
+                    Text("Drag files here, or add files, text or the clipboard.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 12)
+                Button("Add Files…", systemImage: "plus", action: pickFiles)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.slipGreen)
+                    .controlSize(.large)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(selection.items) { item in
+                            SelectionChip(item: item) { withAnimation(.snappy) { selection.remove(item) } }
+                        }
+                    }
+                    .padding(.vertical, 2)
+                    .padding(.trailing, 16)
+                }
+                .mask {
+                    HStack(spacing: 0) {
+                        Color.black
+                        LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 20)
+                    }
+                }
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text("\(selection.items.count) item\(selection.items.count == 1 ? "" : "s")").font(.headline)
+                    Text(Format.bytes(selection.totalSize)).font(.subheadline).foregroundStyle(.secondary)
+                }
+                .monospacedDigit()
+                .fixedSize()
+                Button("Clear", systemImage: "xmark") { withAnimation(.snappy) { selection.clear() } }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.circle)
+                    .controlSize(.large)
+                    .help("Clear selection")
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(minHeight: 64)
-            .slipGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous),
-                       tint: targeted ? Color.slipGreen.opacity(0.25) : nil)
         }
-        .animation(.snappy, value: selection.items.count)
-        .animation(.snappy, value: targeted)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(minHeight: 64)
+        .slipGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+                   tint: targeted ? Color.slipGreen.opacity(0.25) : nil)
     }
 }
 
@@ -383,7 +345,11 @@ private struct SelectionChip: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: item.symbolName).foregroundStyle(Color.slipGreen)
+            if item.preview != nil {
+                Image(systemName: "text.bubble.fill").foregroundStyle(Color.slipGreen)
+            } else {
+                FileGlyph(fileName: item.fileName, mimeType: item.mimeType, size: 24)
+            }
             VStack(alignment: .leading, spacing: 0) {
                 Text(item.displayName).lineLimit(1).truncationMode(.middle).frame(maxWidth: 160, alignment: .leading)
                 Text(Format.bytes(item.size)).font(.caption).foregroundStyle(.secondary)
@@ -398,7 +364,7 @@ private struct SelectionChip: View {
         .padding(.leading, 10)
         .padding(.trailing, 8)
         .padding(.vertical, 6)
-        .slipGlass(in: Capsule(), interactive: true)
+        .background(Color.primary.opacity(0.07), in: Capsule())
     }
 }
 

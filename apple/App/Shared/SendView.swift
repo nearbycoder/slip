@@ -7,107 +7,63 @@ import PhotosUI
 import AppKit
 #endif
 
-/// Send tab: selection tray + nearby devices.
+#if os(iOS)
+/// iOS Send tab: nearby devices with a floating glass selection tray.
 struct SendView: View {
     @Environment(SlipController.self) private var controller
     @Environment(SendSelection.self) private var selection
     @State private var showingText = false
     @State private var showingManual = false
     @State private var alert: String?
-    #if os(iOS)
     @State private var showingImporter = false
     @State private var importFolders = false
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var loadingPhotos = false
-    #endif
+    @State private var nudge = 0
 
     var body: some View {
         List {
             Section {
-                selectionButtons
-                ForEach(selection.items) { item in
-                    HStack {
-                        Image(systemName: item.symbolName).foregroundStyle(Color.slipGreen).frame(width: 24)
-                        Text(item.displayName).lineLimit(1).truncationMode(.middle)
-                        Spacer()
-                        Text(Format.bytes(item.size)).foregroundStyle(.secondary).font(.caption)
-                        #if os(macOS)
-                        Button { selection.remove(item) } label: { Image(systemName: "xmark.circle.fill") }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.secondary)
-                        #endif
-                    }
-                }
-                .onDelete { idx in idx.map { selection.items[$0] }.forEach(selection.remove) }
-            } header: {
-                HStack {
-                    Text("Selection")
-                    Spacer()
-                    if !selection.isEmpty {
-                        Text("\(selection.items.count) · \(Format.bytes(selection.totalSize))")
-                        Button("Clear") { selection.clear() }.buttonStyle(.borderless).font(.caption)
-                    }
-                }
-            }
-
-            Section {
                 if controller.peers.isEmpty {
-                    HStack {
-                        if controller.isScanning { ProgressView().controlSize(.small) }
-                        Text(controller.isScanning ? "Looking for devices…" : "No devices found yet")
-                            .foregroundStyle(.secondary)
+                    ContentUnavailableView {
+                        Label(controller.isScanning ? "Looking for Devices…" : "No Devices Nearby",
+                              systemImage: "dot.radiowaves.left.and.right")
+                            .symbolEffect(.variableColor.iterative, isActive: controller.isScanning)
+                    } description: {
+                        Text("Open Slip or LocalSend on another device on the same Wi-Fi network.")
                     }
+                    .listRowBackground(Color.clear)
                 }
                 ForEach(controller.peers) { peer in
-                    Button { send(to: peer) } label: { DeviceRow(peer: peer) }
-                        .buttonStyle(.plain)
-                        #if os(macOS)
-                        .dropDestination(for: URL.self) { urls, _ in
-                            send(urls: urls, to: peer)
-                            return true
-                        }
-                        .help("Click to send the selection, or drop files here")
-                        #endif
-                }
-                Button {
-                    showingManual = true
-                } label: {
-                    Label("Send to IP address…", systemImage: "network")
+                    IOSDeviceRow(peer: peer, canSend: !selection.isEmpty) { send(to: peer) }
                 }
             } header: {
-                HStack {
-                    Text("Nearby devices")
-                    Spacer()
-                    Button {
-                        controller.refresh()
-                    } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(controller.isScanning)
-                }
+                if !controller.peers.isEmpty { Text("Nearby") }
             }
         }
-        #if os(macOS)
-        .dropDestination(for: URL.self) { urls, _ in
-            selection.add(urls: urls)
-            return true
+        .listStyle(.insetGrouped)
+        .refreshable { await controller.scan() }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            tray
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
         }
-        #endif
         .navigationTitle("Send")
-        .sheet(isPresented: $showingText) {
-            TextComposer { selection.addText($0) }
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button("Send to IP Address", systemImage: "network") { showingManual = true }
+                Button("Refresh", systemImage: "arrow.clockwise") { controller.refresh() }
+                    .disabled(controller.isScanning)
+            }
         }
-        .sheet(isPresented: $showingManual) {
-            ManualPeerView()
-        }
+        .sheet(isPresented: $showingText) { TextComposer { selection.addText($0) } }
+        .sheet(isPresented: $showingManual) { ManualPeerView().presentationDetents([.medium]) }
         .alert("Slip", isPresented: Binding(get: { alert != nil || selection.lastError != nil },
                                              set: { if !$0 { alert = nil; selection.lastError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(alert ?? selection.lastError ?? "")
         }
-        #if os(iOS)
         .fileImporter(isPresented: $showingImporter,
                       allowedContentTypes: importFolders ? [.folder] : [.item],
                       allowsMultipleSelection: true) { result in
@@ -117,62 +73,81 @@ struct SendView: View {
             guard !items.isEmpty else { return }
             Task { await loadPhotos(items) }
         }
-        #endif
+        .sensoryFeedback(.warning, trigger: nudge)
     }
 
+    // MARK: Tray
+
     @ViewBuilder
-    private var selectionButtons: some View {
-        #if os(macOS)
-        HStack {
-            Button { pickFiles() } label: { Label("Files or Folders…", systemImage: "doc.badge.plus") }
-            Button { showingText = true } label: { Label("Text", systemImage: "text.bubble") }
-            Button { Platform.paste(into: selection) } label: { Label("Paste", systemImage: "doc.on.clipboard") }
-        }
-        .buttonStyle(.bordered)
-        #else
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                PhotosPicker(selection: $photoItems, matching: .any(of: [.images, .videos]), photoLibrary: .shared()) {
-                    Label(loadingPhotos ? "Loading…" : "Photos", systemImage: "photo.on.rectangle")
+    private var tray: some View {
+        if selection.isEmpty {
+            SlipGlassContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    PhotosPicker(selection: $photoItems, matching: .any(of: [.images, .videos]), photoLibrary: .shared()) {
+                        SourceButtonLabel(title: loadingPhotos ? "Loading…" : "Photos", symbol: "photo.on.rectangle")
+                    }
+                    Menu {
+                        Button("Files", systemImage: "doc") { importFolders = false; showingImporter = true }
+                        Button("Folder", systemImage: "folder") { importFolders = true; showingImporter = true }
+                    } label: {
+                        SourceButtonLabel(title: "Files", symbol: "doc")
+                    }
+                    Button { showingText = true } label: { SourceButtonLabel(title: "Text", symbol: "text.bubble") }
+                    Button { Platform.paste(into: selection) } label: { SourceButtonLabel(title: "Paste", symbol: "doc.on.clipboard") }
                 }
-                Button { importFolders = false; showingImporter = true } label: { Label("Files", systemImage: "doc") }
-                Button { importFolders = true; showingImporter = true } label: { Label("Folder", systemImage: "folder") }
-                Button { showingText = true } label: { Label("Text", systemImage: "text.bubble") }
-                Button { Platform.paste(into: selection) } label: { Label("Paste", systemImage: "doc.on.clipboard") }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.bordered)
+            .phaseAnimator([false, true], trigger: nudge) { content, up in
+                content.offset(y: up ? -6 : 0)
+            } animation: { _ in .bouncy(duration: 0.25) }
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(selection.items) { item in
+                            IOSSelectionChip(item: item) { withAnimation(.snappy) { selection.remove(item) } }
+                        }
+                    }
+                }
+                HStack {
+                    Text("\(selection.items.count) item\(selection.items.count == 1 ? "" : "s") · \(Format.bytes(selection.totalSize))")
+                        .font(.subheadline.weight(.medium))
+                        .monospacedDigit()
+                    Spacer()
+                    Menu {
+                        PhotosPicker(selection: $photoItems, matching: .any(of: [.images, .videos]), photoLibrary: .shared()) {
+                            Label("Photos", systemImage: "photo.on.rectangle")
+                        }
+                        Button("Files", systemImage: "doc") { importFolders = false; showingImporter = true }
+                        Button("Folder", systemImage: "folder") { importFolders = true; showingImporter = true }
+                        Button("Text", systemImage: "text.bubble") { showingText = true }
+                        Button("Paste", systemImage: "doc.on.clipboard") { Platform.paste(into: selection) }
+                    } label: {
+                        Label("Add", systemImage: "plus")
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    Button("Clear", systemImage: "xmark") { withAnimation(.snappy) { selection.clear() } }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.circle)
+                }
+            }
+            .padding(14)
+            .slipGlass(in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         }
-        #endif
     }
+
+    // MARK: Actions
 
     private func send(to peer: DiscoveredPeer) {
         guard !selection.isEmpty else {
-            alert = "Choose files, a folder or some text to send first."
+            nudge += 1
             return
         }
         controller.send(selection.itemsForSending(), to: peer)
     }
 
-    private func send(urls: [URL], to peer: DiscoveredPeer) {
-        do {
-            controller.send(try SendItem.items(for: urls), to: peer)
-        } catch {
-            alert = error.localizedDescription
-        }
-    }
-
-    #if os(macOS)
-    private func pickFiles() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = true
-        panel.prompt = "Add"
-        if panel.runModal() == .OK { selection.add(urls: panel.urls) }
-    }
-    #endif
-
-    #if os(iOS)
     /// Copies security-scoped picks into a temporary outbox so they stay readable.
     private func addImported(_ urls: [URL]) {
         let outbox = FileManager.default.temporaryDirectory.appendingPathComponent("Outbox/\(UUID().uuidString)", isDirectory: true)
@@ -207,8 +182,94 @@ struct SendView: View {
             }
         }
     }
-    #endif
 }
+
+private struct SourceButtonLabel: View {
+    let title: String
+    let symbol: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(Color.slipGreen)
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 64)
+        .contentShape(Rectangle())
+        .slipGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous), interactive: true)
+    }
+}
+
+private struct IOSDeviceRow: View {
+    let peer: DiscoveredPeer
+    let canSend: Bool
+    let onSend: () -> Void
+
+    var body: some View {
+        Button(action: onSend) {
+            HStack(spacing: 14) {
+                DeviceAvatar(peer: peer, size: 46)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(peer.info.alias).font(.headline).foregroundStyle(.primary)
+                    HStack(spacing: 5) {
+                        Text(peer.info.deviceModel ?? peer.ip)
+                        if peer.info.protocol == .http { Image(systemName: "lock.open") }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if canSend {
+                    Text("Send")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color.slipGreen, in: Capsule())
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .animation(.snappy, value: canSend)
+        .accessibilityHint(canSend ? "Sends your selection to \(peer.info.alias)" : "Choose something to send first")
+    }
+}
+
+private struct IOSSelectionChip: View {
+    let item: SendItem
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if item.preview != nil {
+                Image(systemName: "text.bubble.fill").foregroundStyle(Color.slipGreen)
+            } else {
+                FileGlyph(fileName: item.fileName, mimeType: item.mimeType, size: 26)
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                Text(item.displayName).font(.footnote.weight(.medium)).lineLimit(1).truncationMode(.middle)
+                    .frame(maxWidth: 130, alignment: .leading)
+                Text(Format.bytes(item.size)).font(.caption2).foregroundStyle(.secondary)
+            }
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove \(item.displayName)")
+        }
+        .padding(.leading, 8)
+        .padding(.trailing, 8)
+        .padding(.vertical, 6)
+        .background(Color.primary.opacity(0.07), in: Capsule())
+    }
+}
+#endif
 
 #if os(iOS)
 /// A photo/video exported to a temporary file (avoids loading videos into memory).

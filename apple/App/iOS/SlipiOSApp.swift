@@ -17,6 +17,13 @@ struct SlipiOSApp: App {
                 .environment(controller)
                 .environment(selection)
                 .task {
+                    #if DEBUG
+                    if UserDefaults.standard.bool(forKey: "SlipDemoSelection"), selection.isEmpty {
+                        selection.add(.data(Data(count: 4_404_019), fileName: "IMG_3001.heic", mimeType: "image/heic"))
+                        selection.add(.data(Data(count: 92_274_688), fileName: "Tram 28.mov", mimeType: "video/quicktime"))
+                        selection.add(.data(Data(count: 812_000), fileName: "Restaurants.pdf", mimeType: "application/pdf"))
+                    }
+                    #endif
                     SlipNotifications.shared.setUp(controller: controller)
                     await controller.start()
                 }
@@ -55,7 +62,8 @@ struct SlipiOSApp: App {
 
 struct IOSRootView: View {
     @Environment(SlipController.self) private var controller
-    @State private var tab = 0
+    // `-SlipTab 1` opens a specific tab (developer override, like `-SlipPort`).
+    @State private var tab = UserDefaults.standard.integer(forKey: "SlipTab")
 
     var body: some View {
         TabView(selection: $tab) {
