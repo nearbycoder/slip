@@ -46,6 +46,7 @@ struct SlipMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var controller = AppModel.controller
     @State private var selection = AppModel.selection
+    @AppStorage(MenuBarKey.showExtra) private var showMenuBarExtra = true
 
     var body: some Scene {
         Window("Slip", id: "main") {
@@ -53,9 +54,9 @@ struct SlipMacApp: App {
                 .slipSheets()
                 .environment(controller)
                 .environment(selection)
-                .frame(minWidth: 720, minHeight: 480)
+                .frame(minWidth: 760, minHeight: 520)
         }
-        .defaultSize(width: 880, height: 600)
+        .defaultSize(width: 960, height: 660)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Add Files…") { NotificationCenter.default.post(name: .slipAddFiles, object: nil) }
@@ -66,20 +67,40 @@ struct SlipMacApp: App {
         }
 
         Settings {
-            SettingsView()
-                .environment(controller)
-                .frame(width: 520, height: 600)
-                .preferredColorScheme(controller.settings.theme.colorScheme)
-                .tint(Color.slipGreen)
+            SettingsWindow().environment(controller)
         }
 
-        MenuBarExtra(isInserted: Binding(get: { controller.settings.showMenuBarExtra },
-                                         set: { controller.settings.showMenuBarExtra = $0 })) {
+        // Scene bodies read no controller state (that re-evaluates every scene while a window is
+        // being built); the root view mirrors the setting into this key instead.
+        MenuBarExtra(isInserted: $showMenuBarExtra) {
             MenuBarContent().environment(controller).environment(selection)
         } label: {
-            Image(systemName: controller.activeTransfers.isEmpty ? "paperplane" : "paperplane.fill")
+            MenuBarLabel().environment(controller)
         }
     }
+}
+
+private struct SettingsWindow: View {
+    @Environment(SlipController.self) private var controller
+
+    var body: some View {
+        SettingsView()
+            .frame(width: 520, height: 600)
+            .preferredColorScheme(controller.settings.theme.colorScheme)
+            .tint(Color.slipGreen)
+    }
+}
+
+private struct MenuBarLabel: View {
+    @Environment(SlipController.self) private var controller
+
+    var body: some View {
+        Image(systemName: controller.activeTransfers.isEmpty ? "paperplane" : "paperplane.fill")
+    }
+}
+
+enum MenuBarKey {
+    static let showExtra = "slip.menuBarExtra.shown"
 }
 
 extension Notification.Name {
@@ -87,7 +108,7 @@ extension Notification.Name {
 }
 
 enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
-    case receive, send, transfers, settings
+    case receive, send, transfers
     var id: String { rawValue }
     var title: String { rawValue.capitalized }
     var symbol: String {
@@ -95,7 +116,6 @@ enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
         case .receive: return "arrow.down.circle"
         case .send: return "paperplane"
         case .transfers: return "arrow.up.arrow.down"
-        case .settings: return "gearshape"
         }
     }
 }
@@ -104,41 +124,54 @@ struct MacRootView: View {
     @Environment(SlipController.self) private var controller
     @Environment(SendSelection.self) private var selection
     @Environment(\.openWindow) private var openWindow
-    @State private var item: SidebarItem? = .receive
+    // `-SlipTab send` opens a specific pane (developer override, like `-SlipPort`).
+    @State private var item: SidebarItem? = SidebarItem(rawValue: UserDefaults.standard.string(forKey: "SlipTab") ?? "") ?? .receive
+    @AppStorage(MenuBarKey.showExtra) private var showMenuBarExtra = true
 
     var body: some View {
         NavigationSplitView {
             List(selection: $item) {
-                ForEach(SidebarItem.allCases) { i in
-                    Label(i.title, systemImage: i.symbol)
-                        .badge(i == .transfers ? controller.activeTransfers.count : 0)
-                        .tag(i)
+                Section {
+                    ForEach(SidebarItem.allCases) { i in
+                        Label(i.title, systemImage: i.symbol)
+                            .badge(i == .transfers ? controller.activeTransfers.count : 0)
+                            .tag(i)
+                    }
                 }
-                if !controller.peers.isEmpty {
-                    Section("Nearby") {
-                        ForEach(controller.peers) { peer in
-                            Label(peer.info.alias, systemImage: (peer.info.deviceType ?? .desktop).symbolName)
-                                .dropDestination(for: URL.self) { urls, _ in
-                                    if let items = try? SendItem.items(for: urls) { controller.send(items, to: peer) }
-                                    item = .transfers
-                                    return true
-                                }
-                                .help("Drop files to send to \(peer.info.alias)")
-                        }
+                Section("Nearby") {
+                    if controller.peers.isEmpty {
+                        Label(controller.isScanning ? "Searching…" : "No devices", systemImage: "dot.radiowaves.left.and.right")
+                            .foregroundStyle(.secondary)
+                            .selectionDisabled()
+                    }
+                    ForEach(controller.peers) { peer in
+                        Label(peer.info.alias, systemImage: (peer.info.deviceType ?? .desktop).symbolName)
+                            .selectionDisabled()
+                            .dropDestination(for: URL.self) { urls, _ in
+                                if let items = try? SendItem.items(for: urls) { controller.send(items, to: peer) }
+                                item = .transfers
+                                return true
+                            }
+                            .help("Drop files to send to \(peer.info.alias)")
                     }
                 }
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 210)
+            .safeAreaInset(edge: .bottom, spacing: 0) { SidebarStatus() }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 230)
         } detail: {
             switch item ?? .receive {
-            case .receive: ReceiveView()
-            case .send: SendView()
+            case .receive: MacReceiveView()
+            case .send: MacSendView()
             case .transfers: TransfersView()
-            case .settings: SettingsView()
             }
         }
         .onAppear {
             AppModel.openMainWindow = { [openWindow] in openWindow(id: "main") }
+            showMenuBarExtra = controller.settings.showMenuBarExtra
+        }
+        .onChange(of: controller.settings.showMenuBarExtra) { _, shown in showMenuBarExtra = shown }
+        .onChange(of: showMenuBarExtra) { _, shown in
+            if controller.settings.showMenuBarExtra != shown { controller.settings.showMenuBarExtra = shown }
         }
         .task { await controller.start() }
         .onReceive(NotificationCenter.default.publisher(for: .slipAddFiles)) { _ in

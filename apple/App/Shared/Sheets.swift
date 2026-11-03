@@ -34,11 +34,12 @@ struct IncomingRequestView: View {
                     Text("Decline").frame(maxWidth: .infinity)
                 }
                 .keyboardShortcut(.cancelAction)
+                .slipGlassButton()
                 Button { controller.accept(fileIds: selected) } label: {
                     Text("Accept").frame(maxWidth: .infinity)
                 }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(.borderedProminent)
+                .slipGlassProminentButton()
                 .tint(Color.slipGreen)
                 .disabled(selected.isEmpty)
             }

@@ -87,11 +87,12 @@ They let you run several instances on one machine.
 - Files are saved to the app's Documents folder. `UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace` make them appear under *Files › On My iPhone › Slip*. Received files can be previewed with Quick Look and shared.
 - `NSLocalNetworkUsageDescription`, `NSBonjourServices` and `NSAllowsLocalNetworking` are set.
 - "Open in… Slip" from other apps adds the file to the send tray.
-- **Multicast entitlement:** `App/iOS/Slip.entitlements` contains
-  `com.apple.developer.networking.multicast`. Since iOS 14, Apple has to approve this entitlement for
-  your team ([request form](https://developer.apple.com/contact/request/networking-multicast)).
-  Without approval, remove it from the entitlements to build for a device. Multicast send and receive
-  then fail quietly, and discovery still works through the **HTTP /24 scan fallback**. The scan runs
+- **Multicast entitlement:** since iOS 14, Apple has to approve `com.apple.developer.networking.multicast`
+  for your team ([request form](https://developer.apple.com/contact/request/networking-multicast)) before
+  it can be signed into a profile, so the default `App/iOS/Slip.entitlements` leaves it out and device
+  builds work out of the box. Once approved, build with
+  `CODE_SIGN_ENTITLEMENTS=App/iOS/Slip-Multicast.entitlements`. Without it, multicast send and receive
+  fail quietly, and discovery still works through the **HTTP /24 scan fallback**. The scan runs
   automatically when no peers have appeared after about 4 s, and again whenever you tap Refresh.
   LocalSend peers that see our `/register` calls also add us to their lists.
 - iOS suspends apps in the background, so Slip only receives while it is in the foreground. It asks

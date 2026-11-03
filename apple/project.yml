@@ -112,11 +112,11 @@ targets:
             LSItemContentTypes:
               - public.item
         ITSAppUsesNonExemptEncryption: false
+    # Multicast needs Apple's approval before it can be signed into a profile, so the default
+    # entitlements leave it out. Once approved, build with
+    # CODE_SIGN_ENTITLEMENTS=App/iOS/Slip-Multicast.entitlements.
     entitlements:
       path: App/iOS/Slip.entitlements
-      properties:
-        # Requires Apple approval (https://developer.apple.com/contact/request/networking-multicast).
-        com.apple.developer.networking.multicast: true
 
 schemes:
   Slip-macOS:
