@@ -1,6 +1,6 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
+<p align="center"><img src="assets/icon.svg" width="112" height="112" alt="Slip"></p>
 
-# Slip
+<h1 align="center">Slip</h1>
 
 Send files and text to nearby devices over your local network — natively on every platform,
 and fully compatible with [LocalSend](https://localsend.org).
@@ -19,6 +19,10 @@ Every client implements the [LocalSend protocol v2](protocol/localsend-v2.md). B
 must match across clients is documented in [`protocol/IMPLEMENTATION.md`](protocol/IMPLEMENTATION.md).
 
 The GitHub Pages site lives in [`site/`](site/) and deploys automatically from `main`.
+
+Brand assets live in [`assets/`](assets/): `icon.svg` (app icon), `icon-full-bleed.svg` (for platforms that mask
+corners themselves) and `mark.svg` (monochrome glyph). Run `assets/build-icons.sh` after changing them to
+regenerate every platform's icon files.
 
 ## License
 

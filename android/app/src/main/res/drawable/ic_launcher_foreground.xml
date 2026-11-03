@@ -1,14 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The "S" of assets/icon.svg, drawn as a stroked path (vector drawables can't use fonts). -->
+<!-- The two-piece "S" of assets/icon.svg, scaled from its 1024 canvas into the 66dp safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:pathData="M63.4,39.05 A11.5,9.5 0 1,0 54,54 A11.5,9.5 0 1,1 44.58,68.95"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="7.5"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000" />
+    <group
+        android:scaleX="0.0833"
+        android:scaleY="0.0833"
+        android:translateX="11.35"
+        android:translateY="11.35">
+        <path
+            android:pathData="M606,296 H410 A108,108 0 0,0 410,512 H440"
+            android:strokeColor="#FFFFFF"
+            android:strokeAlpha="0.55"
+            android:strokeWidth="120"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M584,512 H614 A108,108 0 0,1 614,728 H418"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="120"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000" />
+    </group>
 </vector>

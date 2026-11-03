@@ -2,254 +2,1072 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Slip — send files to nearby devices</title>
-  <meta name="description" content="Slip is a free, open-source, native app for sending files and text between nearby devices on your local network. Works with LocalSend. macOS, iOS, Android, Windows and Linux.">
-  <meta property="og:title" content="Slip — send files to nearby devices">
-  <meta property="og:description" content="Native, LocalSend-compatible file sharing for every device you own. No cloud, no account.">
-  <meta name="theme-color" content="#16a34a">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Slip: send files to any device nearby</title>
+  <meta name="description" content="Slip is a free, open-source app for sending files, folders and text between nearby devices over your Wi-Fi. Native on macOS, iOS, Android, Windows and Linux, and compatible with LocalSend.">
+  <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#070a08" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nearbycoder.github.io/slip/">
+  <meta property="og:title" content="Slip: send files to any device nearby">
+  <meta property="og:description" content="Native, LocalSend-compatible file sharing for every device you own. No cloud, no account, no cables.">
+  <meta property="og:image" content="https://nearbycoder.github.io/slip/og.png">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
+    @font-face { font-family: "Geist"; src: url("fonts/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+    @font-face { font-family: "Geist Mono"; src: url("fonts/GeistMono-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+
     :root {
-      --green: #16a34a;
-      --green-strong: #15803d;
-      --green-soft: #dcfce7;
-      --bg: #fbfcfb;
+      --bg: #fafaf9;
+      --bg-alt: #f3f5f2;
       --surface: #ffffff;
-      --text: #0f1a13;
-      --muted: #56635a;
-      --line: #e3e9e4;
-      --shadow: 0 1px 2px rgb(15 26 19 / 0.04), 0 8px 24px rgb(15 26 19 / 0.06);
-      --radius: 18px;
-      color-scheme: light dark;
+      --surface-2: #f6f8f5;
+      --text: #0a0f0c;
+      --text-2: #3c4740;
+      --muted: #6b766f;
+      --line: rgb(10 15 12 / 0.08);
+      --line-strong: rgb(10 15 12 / 0.14);
+      --brand: #16a34a;
+      --brand-hi: #22c55e;
+      --brand-lo: #0b7a39;
+      --brand-ink: #0f7a3a;
+      --brand-tint: rgb(22 163 74 / 0.10);
+      --on-brand: #ffffff;
+      --shadow-sm: 0 1px 2px rgb(10 15 12 / 0.05);
+      --shadow: 0 1px 2px rgb(10 15 12 / 0.04), 0 12px 32px -8px rgb(10 15 12 / 0.10);
+      --shadow-lg: 0 2px 4px rgb(10 15 12 / 0.04), 0 30px 80px -20px rgb(10 15 12 / 0.25);
+      --win: #ffffff;
+      --win-side: #f4f6f3;
+      --win-bar: #eef1ed;
+      --glow: rgb(34 197 94 / 0.22);
+      --radius: 20px;
+      --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color-scheme: light;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --green: #22c55e;
-        --green-strong: #4ade80;
-        --green-soft: #12301d;
-        --bg: #0b100d;
-        --surface: #121914;
-        --text: #e8efe9;
-        --muted: #98a59c;
-        --line: #213026;
-        --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+        --bg: #070a08;
+        --bg-alt: #0b0f0c;
+        --surface: #0f1411;
+        --surface-2: #131a15;
+        --text: #edf3ef;
+        --text-2: #bcc7c0;
+        --muted: #85918a;
+        --line: rgb(255 255 255 / 0.07);
+        --line-strong: rgb(255 255 255 / 0.13);
+        --brand: #22c55e;
+        --brand-hi: #4ade80;
+        --brand-lo: #16a34a;
+        --brand-ink: #4ade80;
+        --brand-tint: rgb(34 197 94 / 0.12);
+        --on-brand: #03200e;
+        --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+        --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -8px rgb(0 0 0 / 0.5);
+        --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 30px 80px -20px rgb(0 0 0 / 0.7);
+        --win: #121815;
+        --win-side: #0e1310;
+        --win-bar: #161d19;
+        --glow: rgb(34 197 94 / 0.16);
+        color-scheme: dark;
       }
     }
-    * { box-sizing: border-box; }
-    html { -webkit-text-size-adjust: 100%; }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 80px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      font: 17px/1.6 var(--sans);
+      font-feature-settings: "ss01", "cv11";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
-    a { color: var(--green-strong); }
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+    a { color: inherit; }
+    img, svg { display: block; }
+    ::selection { background: var(--brand); color: var(--on-brand); }
+    :focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
 
-    header.nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 18px; color: var(--text); text-decoration: none; }
-    .brand img { width: 30px; height: 30px; }
-    .nav-links { display: flex; gap: 22px; }
-    .nav-links a { color: var(--muted); text-decoration: none; font-size: 15px; }
-    .nav-links a:hover { color: var(--text); }
+    .wrap { width: min(1160px, 100% - 40px); margin-inline: auto; }
+    @media (max-width: 520px) { .wrap { width: calc(100% - 32px); } }
 
-    .hero { padding: 64px 0 40px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
-    .eyebrow { display: inline-block; font-size: 13px; font-weight: 600; color: var(--green-strong); background: var(--green-soft); padding: 4px 10px; border-radius: 999px; margin-bottom: 18px; }
-    h1 { font-size: clamp(38px, 6vw, 60px); line-height: 1.05; letter-spacing: -0.025em; margin: 0 0 18px; }
-    .lede { font-size: 19px; color: var(--muted); max-width: 34em; margin: 0 0 28px; }
-    .cta { display: flex; flex-wrap: wrap; gap: 12px; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 12px; font-weight: 600; text-decoration: none; font-size: 15px; border: 1px solid transparent; }
-    .btn-primary { background: var(--green); color: #fff; }
-    .btn-primary:hover { background: var(--green-strong); }
-    @media (prefers-color-scheme: dark) { .btn-primary { color: #04210f; } }
-    .btn-ghost { border-color: var(--line); color: var(--text); background: var(--surface); }
-    .btn-ghost:hover { border-color: var(--muted); }
-
-    /* Illustration: two devices with a file slipping between them */
-    .stage { position: relative; aspect-ratio: 1 / 0.8; }
-    .device { position: absolute; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 16px; }
-    .laptop { left: 0; top: 14%; width: 66%; height: 54%; }
-    .laptop::after { content: ""; position: absolute; left: -6%; right: -6%; bottom: -9%; height: 9%; background: var(--line); border-radius: 0 0 14px 14px; }
-    .phone { right: 0; top: 30%; width: 26%; height: 62%; border-radius: 20px; }
-    .screen-row { margin: 12px 14px 0; height: 10px; border-radius: 5px; background: var(--line); }
-    .screen-row.short { width: 45%; }
-    .peer { margin: 14px; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
-    .peer i { width: 26px; height: 26px; border-radius: 8px; background: var(--green-soft); display: block; flex: none; }
-    .peer b { display: block; height: 8px; width: 70%; border-radius: 4px; background: var(--line); }
-    .chip { position: absolute; left: 48%; top: 38%; width: 58px; height: 70px; border-radius: 10px; background: var(--green); box-shadow: 0 10px 30px rgb(22 163 74 / 0.35); animation: slip 3.2s cubic-bezier(.6,.05,.3,1) infinite; }
-    .chip::before { content: ""; position: absolute; right: 0; top: 0; width: 18px; height: 18px; background: rgb(255 255 255 / 0.35); border-radius: 0 10px 0 8px; }
-    .chip::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 16px; height: 6px; border-radius: 3px; background: rgb(255 255 255 / 0.6); box-shadow: 0 -12px 0 rgb(255 255 255 / 0.45); }
-    @keyframes slip {
-      0%, 12% { transform: translate(-90%, 0) rotate(-6deg); opacity: 0; }
-      25% { opacity: 1; }
-      70% { transform: translate(70%, 40%) rotate(4deg); opacity: 1; }
-      85%, 100% { transform: translate(82%, 46%) rotate(0); opacity: 0; }
+    /* ---------- Nav ---------- */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      transition: background-color .3s, border-color .3s, backdrop-filter .3s;
+      border-bottom: 1px solid transparent;
     }
-    @media (prefers-reduced-motion: reduce) { .chip { animation: none; transform: translate(10%, 20%); } }
-
-    section { padding: 56px 0; }
-    h2 { font-size: clamp(26px, 3.6vw, 36px); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 12px; }
-    .section-lede { color: var(--muted); font-size: 17px; max-width: 40em; margin: 0 0 32px; }
-
-    .platforms { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
-    .platform { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
-    .platform svg { width: 28px; height: 28px; color: var(--green); margin-bottom: 6px; }
-    .platform h3 { margin: 0; font-size: 17px; }
-    .platform p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
-    .platform .stack { margin-top: auto; padding-top: 10px; font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--green-strong); }
-
-    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    .feature { padding: 22px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
-    .feature h3 { margin: 0 0 6px; font-size: 17px; }
-    .feature p { margin: 0; color: var(--muted); font-size: 15px; }
-
-    .steps { counter-reset: step; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; list-style: none; padding: 0; margin: 0; }
-    .steps li { counter-increment: step; padding: 22px; border-left: 3px solid var(--green); background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0; }
-    .steps li::before { content: counter(step); display: block; font-weight: 700; color: var(--green-strong); font-size: 14px; margin-bottom: 6px; }
-    .steps h3 { margin: 0 0 6px; font-size: 17px; }
-    .steps p { margin: 0; color: var(--muted); font-size: 15px; }
-
-    .compat { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 36px; }
-    .compat pre { margin: 0; overflow-x: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 18px; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text); }
-    .compat pre .k { color: var(--green-strong); }
-
-    footer { border-top: 1px solid var(--line); padding: 28px 0 48px; color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
-    footer a { color: var(--muted); }
-
-    @media (max-width: 900px) {
-      .hero { grid-template-columns: 1fr; padding-top: 32px; }
-      .stage { max-width: 440px; width: 100%; margin: 0 auto; }
-      .platforms { grid-template-columns: repeat(2, 1fr); }
-      .features, .steps { grid-template-columns: 1fr; }
-      .compat { grid-template-columns: 1fr; padding: 24px; }
+    .nav.scrolled {
+      background: color-mix(in srgb, var(--bg) 78%, transparent);
+      -webkit-backdrop-filter: saturate(180%) blur(16px);
+      backdrop-filter: saturate(180%) blur(16px);
+      border-bottom-color: var(--line);
     }
-    @media (max-width: 520px) {
-      .wrap { padding: 0 16px; }
-      .nav-links a:not(.gh) { display: none; }
-      .platforms { grid-template-columns: 1fr; }
+    .nav-inner { height: 68px; display: flex; align-items: center; gap: 32px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 650; font-size: 19px; letter-spacing: -0.02em; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; box-shadow: 0 2px 8px -2px rgb(22 163 74 / 0.5); }
+    .nav-links { display: flex; gap: 4px; margin-right: auto; }
+    .nav-links a { text-decoration: none; color: var(--muted); font-size: 15px; padding: 6px 12px; border-radius: 8px; transition: color .15s, background-color .15s; }
+    .nav-links a:hover { color: var(--text); background: var(--line); }
+    .nav-cta { display: flex; align-items: center; gap: 10px; }
+    .gh-link { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-size: 15px; padding: 6px 10px; border-radius: 8px; }
+    .gh-link:hover { color: var(--text); background: var(--line); }
+    .gh-link svg { width: 18px; height: 18px; }
+    @media (max-width: 860px) { .nav-links { display: none; } .nav-cta { margin-left: auto; } }
+    @media (max-width: 420px) { .gh-link span { display: none; } }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      --h: 46px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      height: var(--h); padding: 0 20px; border-radius: 12px;
+      font: 600 15.5px/1 var(--sans); letter-spacing: -0.01em; text-decoration: none; white-space: nowrap;
+      border: 1px solid transparent; cursor: pointer;
+      transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s;
+    }
+    .btn:active { transform: translateY(1px) scale(.99); }
+    .btn svg { width: 18px; height: 18px; flex: none; }
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(180deg, #25c060 0%, #15a049 100%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(11 122 57 / 0.4), 0 8px 24px -6px rgb(22 163 74 / 0.55);
+    }
+    .btn-primary:hover { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(11 122 57 / 0.4), 0 12px 32px -6px rgb(22 163 74 / 0.7); transform: translateY(-1px); }
+    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+    .btn-secondary:hover { border-color: color-mix(in srgb, var(--text) 30%, transparent); transform: translateY(-1px); }
+    .btn-sm { --h: 36px; padding: 0 14px; font-size: 14px; border-radius: 10px; }
+
+    /* ---------- Hero ---------- */
+    .hero { position: relative; padding: 72px 0 40px; isolation: isolate; }
+    .hero::before {
+      content: ""; position: absolute; inset: -68px 0 0; z-index: -1;
+      background:
+        radial-gradient(60% 50% at 50% 0%, var(--glow), transparent 70%),
+        radial-gradient(30% 30% at 85% 30%, rgb(34 197 94 / 0.08), transparent 70%);
+    }
+    .hero::after {
+      content: ""; position: absolute; inset: -68px 0 0; z-index: -1; opacity: .6;
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 56px 56px;
+      -webkit-mask-image: radial-gradient(70% 60% at 50% 10%, #000 20%, transparent 75%);
+      mask-image: radial-gradient(70% 60% at 50% 10%, #000 20%, transparent 75%);
+    }
+    .hero-copy { text-align: center; max-width: 880px; margin: 0 auto; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 6px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--shadow-sm);
+      font-size: 13.5px; color: var(--text-2); text-decoration: none; margin-bottom: 28px;
+      transition: border-color .2s;
+    }
+    .pill:hover { border-color: var(--brand); }
+    .pill b { font-weight: 600; color: var(--brand-ink); background: var(--brand-tint); padding: 2px 9px; border-radius: 999px; font-size: 12.5px; }
+    .pill svg { width: 14px; height: 14px; color: var(--muted); }
+    h1 {
+      margin: 0 0 22px;
+      font-size: clamp(44px, 7.6vw, 92px); line-height: .98; letter-spacing: -0.048em; font-weight: 640;
+      text-wrap: balance;
+    }
+    h1 .accent {
+      background: linear-gradient(100deg, #16a34a 0%, #22c55e 45%, #0d9488 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      padding-right: .04em;
+    }
+    @media (prefers-color-scheme: dark) { h1 .accent { background-image: linear-gradient(100deg, #4ade80 0%, #22c55e 50%, #2dd4bf 100%); } }
+    .lede { font-size: clamp(17.5px, 2vw, 20.5px); line-height: 1.55; color: var(--muted); max-width: 640px; margin: 0 auto 34px; text-wrap: pretty; }
+    .lede strong { color: var(--text-2); font-weight: 550; }
+    .hero-cta { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+    .hero-note { margin-top: 18px; font-size: 14px; color: var(--muted); display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px; }
+    .hero-note span { display: inline-flex; align-items: center; gap: 6px; }
+    .hero-note svg { width: 15px; height: 15px; color: var(--brand); }
+
+    /* ---------- Hero stage (product mockup) ---------- */
+    .stage-wrap { margin: 64px auto 0; max-width: 1080px; position: relative; }
+    .stage { container-type: inline-size; position: relative; aspect-ratio: 1000 / 600; }
+    .stage * { box-sizing: border-box; }
+    .stage { --t: 11s; font-size: 1.25cqw; line-height: 1.35; letter-spacing: -0.005em; }
+
+    .mac {
+      position: absolute; left: 0; top: 2cqw; width: 75cqw; height: 50cqw;
+      background: var(--win); border-radius: 1.4cqw; overflow: hidden;
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow-lg), 0 0 0 .5px rgb(0 0 0 / 0.05);
+      display: grid; grid-template-columns: 19cqw 1fr; grid-template-rows: 4.2cqw 1fr;
+    }
+    .mac-bar { grid-column: 1 / -1; display: flex; align-items: center; padding: 0 1.6cqw; background: var(--win-bar); border-bottom: 1px solid var(--line); position: relative; }
+    .lights { display: flex; gap: .8cqw; }
+    .lights i { width: 1.2cqw; height: 1.2cqw; border-radius: 50%; background: #ff5f57; box-shadow: inset 0 0 0 .5px rgb(0 0 0 / .12); }
+    .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+    .mac-title { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 600; color: var(--muted); font-size: 1.2cqw; pointer-events: none; }
+    .mac-side { background: var(--win-side); border-right: 1px solid var(--line); padding: 1.4cqw 1cqw; display: flex; flex-direction: column; gap: .3cqw; }
+    .side-item { display: flex; align-items: center; gap: .9cqw; padding: .75cqw 1cqw; border-radius: .7cqw; color: var(--text-2); font-weight: 500; }
+    .side-item svg { width: 1.6cqw; height: 1.6cqw; color: var(--muted); }
+    .side-item.on { background: var(--brand-tint); color: var(--brand-ink); }
+    .side-item.on svg { color: var(--brand-ink); }
+    .side-me { margin-top: auto; padding: 1cqw; border-radius: .8cqw; border: 1px solid var(--line); background: var(--win); display: flex; gap: .8cqw; align-items: center; }
+    .side-me img { width: 2.6cqw; height: 2.6cqw; border-radius: .6cqw; }
+    .side-me b { display: block; font-weight: 600; font-size: 1.15cqw; }
+    .side-me small { display: block; color: var(--muted); font-size: 1cqw; font-family: var(--mono); }
+    .mac-main { padding: 2cqw 2.4cqw; display: flex; flex-direction: column; gap: 1.6cqw; min-width: 0; }
+    .mac-h { display: flex; align-items: center; justify-content: space-between; }
+    .mac-h h4 { margin: 0; font-size: 2cqw; letter-spacing: -0.02em; font-weight: 650; }
+    .mac-h .scan { display: inline-flex; align-items: center; gap: .6cqw; color: var(--muted); font-size: 1.1cqw; }
+    .mac-h .scan i { width: .8cqw; height: .8cqw; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 0 var(--brand); animation: ping 2s infinite; }
+    @keyframes ping { 0% { box-shadow: 0 0 0 0 rgb(34 197 94 / .6); } 80%, 100% { box-shadow: 0 0 0 .9cqw rgb(34 197 94 / 0); } }
+    .tray { display: flex; align-items: center; gap: .9cqw; padding: 1.1cqw; border-radius: 1cqw; background: var(--surface-2); border: 1px solid var(--line); }
+    .thumb { width: 4.6cqw; height: 4.6cqw; border-radius: .7cqw; flex: none; position: relative; overflow: hidden; }
+    .thumb::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .06); border-radius: inherit; }
+    .ph1 { background: linear-gradient(160deg, #fcd34d, #f97316 60%, #be185d); }
+    .ph2 { background: linear-gradient(200deg, #67e8f9, #3b82f6 55%, #1e3a8a); }
+    .ph3 { background: linear-gradient(180deg, #a7f3d0, #10b981 50%, #065f46); }
+    .ph4 { background: linear-gradient(140deg, #f9a8d4, #a855f7 60%, #4c1d95); }
+    .ph1::before, .ph3::before { content: ""; position: absolute; left: -10%; right: -10%; bottom: -20%; height: 55%; border-radius: 50% 50% 0 0; background: rgb(0 0 0 / .18); }
+    .doc { background: var(--win); border: 1px solid var(--line-strong); display: grid; place-items: center; }
+    .doc span { font: 700 1cqw/1 var(--mono); color: #e11d48; }
+    .tray-meta { margin-left: .4cqw; min-width: 0; }
+    .tray-meta b { display: block; font-weight: 600; }
+    .tray-meta small { color: var(--muted); font-size: 1.05cqw; }
+    .tray .add { margin-left: auto; width: 3.2cqw; height: 3.2cqw; border-radius: 50%; border: 1px dashed var(--line-strong); display: grid; place-items: center; color: var(--muted); font-size: 1.8cqw; }
+    .compose { margin-top: auto; display: flex; align-items: center; gap: 1cqw; padding: .9cqw .9cqw .9cqw 1.4cqw; border-radius: 1cqw; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); }
+    .compose span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .compose b { display: grid; place-items: center; width: 2.8cqw; height: 2.8cqw; border-radius: .7cqw; background: var(--line); color: var(--text-2); }
+    .compose b svg { width: 1.4cqw; height: 1.4cqw; }
+    .label { font-size: 1.05cqw; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: -.6cqw; }
+    .devices { display: grid; grid-template-columns: 1fr 1fr; gap: 1cqw; }
+    .dev { position: relative; display: flex; align-items: center; gap: 1.1cqw; padding: 1.2cqw; border-radius: 1cqw; border: 1px solid var(--line); background: var(--win); overflow: hidden; }
+    .dev-ic { width: 3.6cqw; height: 3.6cqw; border-radius: .9cqw; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); flex: none; }
+    .dev-ic svg { width: 1.9cqw; height: 1.9cqw; }
+    .dev b { display: block; font-weight: 600; white-space: nowrap; }
+    .dev small { display: block; color: var(--muted); font-size: 1.05cqw; white-space: nowrap; }
+    .dev .tag { margin-left: auto; font-size: .9cqw; font-weight: 600; padding: .25cqw .7cqw; border-radius: 99cqw; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .dev.target { animation: target var(--t) infinite; }
+    .dev.target .dev-ic { background: var(--brand-tint); color: var(--brand-ink); }
+    .dev .bar { position: absolute; left: 0; bottom: 0; height: .3cqw; width: 100%; background: var(--brand); transform-origin: left; transform: scaleX(0); animation: fill var(--t) infinite; }
+    .dev .state { margin-left: auto; font-size: 1.05cqw; font-weight: 600; color: var(--brand-ink); position: relative; height: 1.4cqw; min-width: 6cqw; text-align: right; }
+    .dev .state span { position: absolute; right: 0; top: 0; white-space: nowrap; opacity: 0; }
+    .dev .state .s1 { animation: s-wait var(--t) infinite; }
+    .dev .state .s2 { animation: s-send var(--t) infinite; }
+    .dev .state .s3 { animation: s-done var(--t) infinite; }
+    @keyframes target {
+      0%, 8% { border-color: var(--line); box-shadow: none; transform: none; }
+      10% { border-color: var(--brand); box-shadow: 0 0 0 .35cqw var(--brand-tint); transform: scale(.985); }
+      13%, 90% { border-color: var(--brand); box-shadow: 0 0 0 .35cqw var(--brand-tint); transform: none; }
+      96%, 100% { border-color: var(--line); box-shadow: none; }
+    }
+    @keyframes fill { 0%, 48% { transform: scaleX(0); opacity: 1; } 80% { transform: scaleX(1); opacity: 1; } 92% { transform: scaleX(1); opacity: 0; } 100% { transform: scaleX(0); opacity: 0; } }
+    @keyframes s-wait { 0%, 12% { opacity: 0; } 14%, 46% { opacity: 1; } 48%, 100% { opacity: 0; } }
+    @keyframes s-send { 0%, 47% { opacity: 0; } 49%, 79% { opacity: 1; } 81%, 100% { opacity: 0; } }
+    @keyframes s-done { 0%, 80% { opacity: 0; } 82%, 94% { opacity: 1; } 97%, 100% { opacity: 0; } }
+
+    /* Flying file chip */
+    .fly { position: absolute; left: 38cqw; top: 31cqw; width: 4.6cqw; height: 5.6cqw; z-index: 5; pointer-events: none; animation: fly var(--t) infinite cubic-bezier(.55,0,.25,1); opacity: 0; }
+    .fly .card { position: absolute; inset: 0; border-radius: .7cqw; box-shadow: 0 1cqw 2.4cqw -0.6cqw rgb(0 0 0 / .35); }
+    .fly .card:nth-child(1) { transform: rotate(-10deg) translate(-.6cqw, .2cqw); }
+    .fly .card:nth-child(2) { transform: rotate(6deg) translate(.5cqw, 0); }
+    .fly .count { position: absolute; right: -1cqw; top: -1cqw; min-width: 2.2cqw; height: 2.2cqw; padding: 0 .5cqw; border-radius: 99cqw; background: var(--brand); color: #fff; display: grid; place-items: center; font: 700 1cqw/1 var(--sans); box-shadow: 0 0 0 .25cqw var(--win); }
+    @keyframes fly {
+      0%, 12% { opacity: 0; transform: translate(0, 0) scale(.6) rotate(0); }
+      14% { opacity: 1; transform: translate(0, -1cqw) scale(1) rotate(-4deg); }
+      27% { opacity: 1; transform: translate(47cqw, -4cqw) scale(.9) rotate(8deg); }
+      30% { opacity: 0; transform: translate(50cqw, 2cqw) scale(.4) rotate(0); }
+      100% { opacity: 0; transform: translate(50cqw, 2cqw) scale(.4); }
+    }
+
+    /* Phone */
+    .phone {
+      position: absolute; right: 1.5cqw; top: 9cqw; width: 23cqw; height: 48.5cqw; z-index: 3;
+      border-radius: 4cqw; padding: .7cqw; background: #0b0d0c;
+      box-shadow: var(--shadow-lg), 0 0 0 .25cqw #2a2e2c, inset 0 0 0 .15cqw #3a3f3c;
+    }
+    .screen { position: relative; height: 100%; border-radius: 3.4cqw; overflow: hidden; background: var(--bg); }
+    .island { position: absolute; top: 1cqw; left: 50%; translate: -50% 0; width: 7cqw; height: 2cqw; border-radius: 99cqw; background: #000; z-index: 4; }
+    .status { display: flex; justify-content: space-between; padding: 1.15cqw 2.2cqw 0; font-weight: 600; font-size: 1.1cqw; }
+    .status i { display: inline-block; width: 2.2cqw; height: 1cqw; border-radius: .3cqw; border: .15cqw solid currentColor; opacity: .8; position: relative; }
+    .status i::after { content: ""; position: absolute; inset: .12cqw; right: .5cqw; background: currentColor; border-radius: .1cqw; }
+    .ph-head { padding: 3.4cqw 1.8cqw 0; }
+    .ph-head h5 { margin: 0; font-size: 2.6cqw; letter-spacing: -0.03em; font-weight: 700; }
+    .ph-head p { margin: .2cqw 0 0; color: var(--muted); font-size: 1.1cqw; display: flex; align-items: center; gap: .5cqw; }
+    .ph-head p i { width: .7cqw; height: .7cqw; border-radius: 50%; background: var(--brand); }
+    .radar { position: absolute; left: 50%; top: 52%; translate: -50% -50%; width: 30cqw; aspect-ratio: 1; }
+    .radar span { position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--brand); opacity: 0; animation: radar 3.2s infinite ease-out; }
+    .radar span:nth-child(2) { animation-delay: 1.07s; } .radar span:nth-child(3) { animation-delay: 2.14s; }
+    @keyframes radar { 0% { transform: scale(.25); opacity: .55; } 100% { transform: scale(1); opacity: 0; } }
+    .radar img { position: absolute; left: 50%; top: 50%; width: 6cqw; height: 6cqw; translate: -50% -50%; border-radius: 1.5cqw; box-shadow: 0 .8cqw 2cqw -0.4cqw rgb(22 163 74 / .6); }
+    .ph-me { position: absolute; left: 0; right: 0; bottom: 4cqw; text-align: center; }
+    .ph-me b { display: block; font-size: 1.5cqw; letter-spacing: -0.01em; }
+    .ph-me small { color: var(--muted); font-size: 1.05cqw; }
+
+    .sheet {
+      position: absolute; left: .6cqw; right: .6cqw; bottom: .6cqw; z-index: 3;
+      background: var(--surface); border-radius: 2.8cqw; padding: 1.2cqw 1.6cqw 1.8cqw;
+      box-shadow: 0 -1cqw 4cqw -1cqw rgb(0 0 0 / .3); border: 1px solid var(--line);
+      transform: translateY(110%); animation: sheet var(--t) infinite cubic-bezier(.3,1.25,.5,1);
+      height: 27cqw;
+    }
+    .sheet::before { content: ""; display: block; width: 3.6cqw; height: .45cqw; border-radius: 99cqw; background: var(--line-strong); margin: 0 auto 1.4cqw; }
+    @keyframes sheet { 0%, 27% { transform: translateY(110%); } 31%, 94% { transform: translateY(0); } 98%, 100% { transform: translateY(110%); } }
+    .sheet .layer { position: absolute; left: 1.6cqw; right: 1.6cqw; top: 2.8cqw; bottom: 1.8cqw; display: flex; flex-direction: column; }
+    .sheet .l1 { animation: l1 var(--t) infinite; }
+    .sheet .l2 { opacity: 0; animation: l2 var(--t) infinite; }
+    .sheet .l3 { opacity: 0; animation: l3 var(--t) infinite; align-items: center; justify-content: center; text-align: center; }
+    @keyframes l1 { 0%, 49% { opacity: 1; } 51%, 100% { opacity: 0; } }
+    @keyframes l2 { 0%, 50% { opacity: 0; } 52%, 80% { opacity: 1; } 82%, 100% { opacity: 0; } }
+    @keyframes l3 { 0%, 81% { opacity: 0; transform: scale(.9); } 84%, 100% { opacity: 1; transform: none; } }
+    .from { display: flex; align-items: center; gap: 1cqw; }
+    .from .dev-ic { width: 3.4cqw; height: 3.4cqw; background: var(--surface-2); }
+    .from b { display: block; font-size: 1.4cqw; letter-spacing: -0.01em; }
+    .from small { display: block; color: var(--muted); font-size: 1cqw; }
+    .ask { margin: 1.2cqw 0 1cqw; font-size: 1.15cqw; color: var(--text-2); }
+    .ask b { color: var(--text); }
+    .strip { display: flex; gap: .5cqw; }
+    .strip .thumb { width: 3.5cqw; height: 3.5cqw; border-radius: .6cqw; }
+    .strip .more { width: 3.5cqw; height: 3.5cqw; border-radius: .6cqw; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; font-size: 1cqw; font-weight: 600; color: var(--muted); }
+    .acts { display: grid; grid-template-columns: 1fr 1fr; gap: .8cqw; margin-top: auto; }
+    .acts span { display: grid; place-items: center; height: 3.6cqw; border-radius: 99cqw; font-weight: 600; font-size: 1.2cqw; background: var(--surface-2); border: 1px solid var(--line); }
+    .acts .yes { background: var(--brand); border-color: transparent; color: #fff; animation: press var(--t) infinite; }
+    @keyframes press { 0%, 44% { transform: none; filter: none; } 46%, 48% { transform: scale(.94); filter: brightness(.9); } 50%, 100% { transform: none; filter: none; } }
+    .recv-t { font-weight: 650; font-size: 1.5cqw; letter-spacing: -0.01em; }
+    .recv-s { color: var(--muted); font-size: 1.05cqw; margin-top: .2cqw; }
+    .track { height: .8cqw; border-radius: 99cqw; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; margin-top: 1.6cqw; }
+    .track i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-hi)); transform-origin: left; transform: scaleX(0); animation: fill var(--t) infinite; border-radius: inherit; }
+    .files { margin-top: 1.4cqw; display: grid; gap: .7cqw; }
+    .files div { display: flex; align-items: center; gap: .8cqw; font-size: 1.05cqw; }
+    .files .thumb { width: 2.4cqw; height: 2.4cqw; border-radius: .45cqw; }
+    .files em { margin-left: auto; font-style: normal; color: var(--muted); font-family: var(--mono); font-size: .95cqw; }
+    .check { width: 6cqw; height: 6cqw; border-radius: 50%; background: var(--brand); display: grid; place-items: center; color: #fff; margin-bottom: 1.2cqw; box-shadow: 0 0 0 1cqw var(--brand-tint); }
+    .check svg { width: 3cqw; height: 3cqw; }
+
+    .hero-copy > *, .stage-wrap { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+    .hero-copy > :nth-child(2) { animation-delay: .06s; } .hero-copy > :nth-child(3) { animation-delay: .12s; }
+    .hero-copy > :nth-child(4) { animation-delay: .18s; } .hero-copy > :nth-child(5) { animation-delay: .22s; }
+    .stage-wrap { animation-duration: 1.2s; animation-delay: .3s; }
+    @keyframes rise { from { opacity: 0; translate: 0 18px; } to { opacity: 1; translate: 0 0; } }
+    @media (prefers-reduced-motion: reduce) { .hero-copy > *, .stage-wrap { animation: none; } }
+    .stage-caption { margin-top: 22px; text-align: center; font-size: 14px; color: var(--muted); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stage *, .stage *::before { animation: none !important; }
+      .sheet { transform: none; }
+      .dev .state .s1 { opacity: 1; }
+      .dev.target { border-color: var(--brand); }
+    }
+
+    /* ---------- Sections ---------- */
+    section { padding: 120px 0; position: relative; }
+    @media (max-width: 720px) { section { padding: 84px 0; } }
+    .kicker { display: inline-flex; align-items: center; gap: 8px; font: 600 13px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--brand-ink); margin-bottom: 18px; }
+    .kicker::before { content: ""; width: 18px; height: 2px; border-radius: 2px; background: currentColor; }
+    h2 { margin: 0 0 18px; font-size: clamp(34px, 4.8vw, 56px); line-height: 1.04; letter-spacing: -0.04em; font-weight: 640; text-wrap: balance; }
+    h2 .dim { color: var(--muted); }
+    .sub { margin: 0; color: var(--muted); font-size: clamp(17px, 1.6vw, 19px); max-width: 600px; text-wrap: pretty; }
+    .head { margin-bottom: 56px; }
+    .head.center { text-align: center; } .head.center .sub { margin-inline: auto; }
+
+    /* Platform strip */
+    .strip-band { padding: 36px 0 0; }
+    .os-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 40px; color: var(--muted); }
+    .os { display: inline-flex; align-items: center; gap: 10px; font-weight: 550; font-size: 16px; letter-spacing: -0.01em; }
+    .os svg { width: 22px; height: 22px; }
+
+    /* ---------- Bento ---------- */
+    .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+    .tile {
+      position: relative; overflow: hidden; border-radius: 24px; padding: 30px;
+      background: var(--surface); border: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+      display: flex; flex-direction: column; min-height: 300px;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+    }
+    .tile:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .tile h3 { margin: 0 0 8px; font-size: 21px; letter-spacing: -0.025em; font-weight: 620; line-height: 1.2; }
+    .tile p { margin: 0; color: var(--muted); font-size: 15.5px; line-height: 1.55; max-width: 34em; }
+    .tile .art { margin-top: auto; padding-top: 28px; }
+    .t-4 { grid-column: span 4; } .t-3 { grid-column: span 3; } .t-2 { grid-column: span 2; }
+    @media (max-width: 960px) { .t-4, .t-3, .t-2 { grid-column: span 3; } .t-4 { grid-column: span 6; } }
+    @media (max-width: 640px) { .bento { grid-template-columns: 1fr; } .t-4, .t-3, .t-2 { grid-column: auto; } .tile { padding: 24px; min-height: 0; } }
+
+    /* discovery tile */
+    .t-discover { min-height: 420px; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; gap: 12px; }
+    .t-discover .copy { position: relative; z-index: 2; align-self: start; }
+    .orbit { position: relative; width: 100%; max-width: 440px; justify-self: center; aspect-ratio: 1; margin: -30px -10px -30px 0; }
+    .orbit .ring { position: absolute; border-radius: 50%; border: 1px dashed var(--line-strong); }
+    .orbit .r1 { inset: 31%; } .orbit .r2 { inset: 16%; } .orbit .r3 { inset: 1%; }
+    .orbit .pulse { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, transparent 30%, var(--brand-tint) 60%, transparent 70%); animation: grow 4s infinite ease-out; opacity: 0; }
+    @keyframes grow { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(1.1); opacity: 0; } }
+    .orbit .core { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 72px; height: 72px; border-radius: 19px; box-shadow: 0 16px 40px -10px rgb(22 163 74 / .6); }
+    .peer {
+      position: absolute; display: flex; align-items: center; gap: 10px; padding: 7px 13px 7px 7px; border-radius: 14px;
+      background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--shadow);
+      font-size: 13px; white-space: nowrap; translate: -50% -50%;
+    }
+    .peer .dev-ic { width: 30px; height: 30px; border-radius: 9px; background: var(--surface-2); display: grid; place-items: center; color: var(--text-2); }
+    .peer .dev-ic svg { width: 16px; height: 16px; }
+    .peer b { display: block; font-weight: 600; line-height: 1.2; }
+    .peer small { display: block; color: var(--muted); font-size: 12px; line-height: 1.2; }
+    .peer.p1 { left: 28%; top: 16%; } .peer.p2 { left: 78%; top: 34%; } .peer.p3 { left: 22%; top: 70%; } .peer.p4 { left: 70%; top: 86%; }
+    .js .peer { opacity: 0; scale: .85; transition: opacity .5s, scale .5s cubic-bezier(.3,1.4,.5,1); }
+    .js .t-discover.in .peer { opacity: 1; scale: 1; }
+    .js .t-discover.in .p2 { transition-delay: .25s; } .js .t-discover.in .p3 { transition-delay: .5s; } .js .t-discover.in .p4 { transition-delay: .75s; }
+    @media (max-width: 640px) { .t-discover { grid-template-columns: 1fr; } .orbit { margin: 0 auto -20px; max-width: 360px; } .peer { font-size: 12px; } }
+
+    /* security tile */
+    .lockart { display: flex; flex-direction: column; gap: 10px; }
+    .cert { font: 12.5px/1.5 var(--mono); color: var(--text-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+    .cert .k { color: var(--muted); }
+    .cert .ok { color: var(--brand-ink); }
+    .shield { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: var(--brand-tint); color: var(--brand-ink); }
+    .shield svg { width: 28px; height: 28px; }
+
+    /* types tile */
+    .types { display: flex; flex-wrap: wrap; gap: 8px; }
+    .type { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px 8px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); font-size: 14px; font-weight: 520; }
+    .type i { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font: 700 9.5px/1 var(--mono); color: #fff; font-style: normal; }
+    .type .i1 { background: linear-gradient(160deg, #fcd34d, #f97316); } .type .i2 { background: #e11d48; } .type .i3 { background: #3b82f6; } .type .i4 { background: #a855f7; } .type .i5 { background: var(--muted); }
+
+    /* quick save tile */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); }
+    .toggle-row b { display: block; font-size: 15px; font-weight: 600; }
+    .toggle-row small { color: var(--muted); font-size: 13px; }
+    .switch { width: 46px; height: 28px; border-radius: 99px; background: var(--brand); position: relative; flex: none; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .05); }
+    .switch::after { content: ""; position: absolute; top: 3px; left: 21px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgb(0 0 0 / .2); }
+    .js .t-quick:not(.in) .switch { background: var(--line-strong); }
+    .js .t-quick:not(.in) .switch::after { left: 3px; }
+    .switch, .switch::after { transition: all .4s cubic-bezier(.3,1.3,.5,1) .3s; }
+
+    /* pin tile */
+    .pin { display: flex; gap: 8px; }
+    .pin span { flex: 1; max-width: 46px; aspect-ratio: .82; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface-2); display: grid; place-items: center; font: 600 22px/1 var(--mono); }
+    .pin span.f { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-tint); }
+
+    /* private tile */
+    .net { display: flex; align-items: center; gap: 0; }
+    .net .node { width: 58px; height: 58px; border-radius: 16px; border: 1px solid var(--line-strong); background: var(--surface-2); display: grid; place-items: center; color: var(--text-2); flex: none; }
+    .net .node svg { width: 26px; height: 26px; }
+    .net .wire { flex: 1; height: 2px; position: relative; background: repeating-linear-gradient(90deg, var(--brand) 0 6px, transparent 6px 12px); background-size: 24px 2px; animation: dash 1s linear infinite; }
+    @keyframes dash { to { background-position: 24px 0; } }
+    .net .cloud { position: absolute; left: 50%; top: -46px; translate: -50% 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; }
+    .net .cloud svg { width: 30px; height: 30px; }
+    .net .cloud::after { content: ""; position: absolute; top: 2px; left: 50%; width: 40px; height: 2px; background: #e11d48; rotate: -30deg; translate: -50% 12px; border-radius: 2px; }
+
+    /* speed tile */
+    .streams { display: grid; gap: 10px; }
+    .stream { display: grid; grid-template-columns: 110px 1fr 42px; align-items: center; gap: 12px; font-size: 13.5px; }
+    .stream span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+    .stream em { font-style: normal; font-family: var(--mono); font-size: 12.5px; color: var(--muted); text-align: right; }
+    .stream .tr { height: 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+    .stream .tr i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--brand-hi)); transform-origin: left; }
+    .js .t-speed .tr i { transform: scaleX(0); transition: transform 1.6s cubic-bezier(.3,.7,.2,1); }
+    .js .t-speed.in .tr i { transform: scaleX(var(--p)); }
+    .js .t-speed.in .stream:nth-child(2) i { transition-delay: .15s; } .js .t-speed.in .stream:nth-child(3) i { transition-delay: .3s; }
+
+    /* ---------- Platforms ---------- */
+    .plats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+    .plat { grid-column: span 2; border-radius: 24px; border: 1px solid var(--line); background: var(--surface); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-sm); transition: transform .3s cubic-bezier(.3,1,.5,1), box-shadow .3s, border-color .3s; }
+    .plat:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--line-strong); }
+    .plat.wide { grid-column: span 3; }
+    .plat .shot { height: 190px; position: relative; background: var(--bg-alt); border-bottom: 1px solid var(--line); overflow: hidden; display: grid; place-items: center; }
+    .plat .body { padding: 24px 26px 26px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .plat h3 { margin: 0; font-size: 22px; letter-spacing: -0.025em; font-weight: 640; display: flex; align-items: center; gap: 10px; }
+    .plat h3 svg { width: 22px; height: 22px; color: var(--brand-ink); }
+    .plat p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.55; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .chips span { font: 500 12.5px/1 var(--mono); padding: 6px 9px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); }
+    .plat .more { margin-top: auto; padding-top: 10px; font-size: 14.5px; font-weight: 600; color: var(--brand-ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .plat .more:hover { text-decoration: underline; text-underline-offset: 3px; }
+    @media (max-width: 960px) { .plat, .plat.wide { grid-column: span 3; } .plat:last-child { grid-column: 1 / -1; } }
+    @media (max-width: 640px) { .plats { grid-template-columns: 1fr; } .plat, .plat.wide, .plat:last-child { grid-column: auto; } }
+
+    /* mini platform UIs */
+    .mini { width: 78%; max-width: 300px; border-radius: 12px; background: var(--win); border: 1px solid var(--line-strong); box-shadow: var(--shadow); font-size: 11px; overflow: hidden; translate: 0 18px; }
+    .mini .bar { height: 26px; display: flex; align-items: center; padding: 0 10px; gap: 6px; background: var(--win-bar); border-bottom: 1px solid var(--line); font-weight: 600; color: var(--muted); }
+    .mini .bar .lights i { width: 9px; height: 9px; }
+    .mini .bar .lights { gap: 5px; margin-right: 6px; }
+    .mini .rows { padding: 10px; display: grid; gap: 6px; }
+    .mini .row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); }
+    .mini .row i { width: 20px; height: 20px; border-radius: 6px; background: var(--brand-tint); flex: none; }
+    .mini .row b { font-weight: 600; } .mini .row small { margin-left: auto; color: var(--muted); }
+    .mini.win { border-radius: 8px; background: color-mix(in srgb, var(--win) 80%, #8fd6a8 20%); }
+    .mini.win .bar { background: transparent; border: 0; justify-content: space-between; }
+    .mini.win .caps { display: flex; gap: 14px; color: var(--muted); font-weight: 400; }
+    .mini.win .row { border-radius: 4px; background: var(--win); }
+    .mini.win .row i { border-radius: 3px; }
+    .mini.gnome { border-radius: 14px; }
+    .mini.gnome .bar { height: 34px; justify-content: center; background: var(--win); position: relative; }
+    .mini.gnome .bar .x { position: absolute; right: 10px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface-2); }
+    .mini.gnome .rows { background: var(--bg-alt); padding: 12px; gap: 0; }
+    .mini.gnome .row { border-radius: 0; background: var(--win); border-width: 1px 1px 0; }
+    .mini.gnome .row:first-child { border-radius: 10px 10px 0 0; } .mini.gnome .row:last-child { border-radius: 0 0 10px 10px; border-bottom-width: 1px; }
+    .handset { width: 120px; height: 240px; border-radius: 26px; background: #0b0d0c; padding: 5px; box-shadow: var(--shadow), 0 0 0 2px #2a2e2c; translate: 0 52px; }
+    .handset .scr { height: 100%; border-radius: 21px; background: var(--win); overflow: hidden; position: relative; padding: 26px 9px 0; font-size: 9px; }
+    .handset .scr::before { content: ""; position: absolute; top: 7px; left: 50%; translate: -50% 0; width: 34px; height: 10px; border-radius: 10px; background: #000; }
+    .handset.android .scr::before { width: 8px; height: 8px; }
+    .handset .t { font-weight: 700; font-size: 14px; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .handset .card { border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); padding: 7px; display: flex; gap: 6px; align-items: center; margin-bottom: 5px; }
+    .handset .card i { width: 16px; height: 16px; border-radius: 5px; background: var(--brand-tint); }
+    .handset.android .card { border-radius: 14px; border: 0; background: color-mix(in srgb, var(--brand) 12%, var(--win)); }
+    .handset .fab { position: absolute; right: 10px; bottom: 60px; width: 36px; height: 36px; border-radius: 12px; background: var(--brand); box-shadow: 0 4px 10px rgb(22 163 74 / .45); }
+    .handset .navb { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; border-top: 1px solid var(--line); display: flex; justify-content: space-around; align-items: center; }
+    .handset .navb i { width: 14px; height: 6px; border-radius: 4px; background: var(--line-strong); }
+    .handset .navb i:first-child { width: 26px; height: 12px; background: var(--brand-tint); }
+    .handset .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; display: flex; justify-content: space-around; align-items: center; background: color-mix(in srgb, var(--win) 85%, transparent); border-top: 1px solid var(--line); }
+    .handset .tabs i { width: 10px; height: 10px; border-radius: 3px; background: var(--line-strong); }
+    .handset .tabs i:first-child { background: var(--brand); }
+
+    /* ---------- LocalSend ---------- */
+    .ls { display: grid; grid-template-columns: 1fr 1.05fr; gap: 64px; align-items: center; }
+    .ls > *, .faq > * { min-width: 0; }
+    @media (max-width: 960px) { .ls { grid-template-columns: 1fr; gap: 40px; } }
+    .specs { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 14px; }
+    .specs li { display: grid; grid-template-columns: 36px 1fr; gap: 14px; align-items: start; }
+    .specs .ic { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-tint); color: var(--brand-ink); display: grid; place-items: center; }
+    .specs .ic svg { width: 18px; height: 18px; }
+    .specs b { display: block; font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+    .specs span { color: var(--muted); font-size: 15px; }
+    .specs code { font: 13.5px var(--mono); color: var(--text-2); background: var(--surface-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; }
+    .term { border-radius: 18px; background: #0b0f0d; border: 1px solid rgb(255 255 255 / .08); box-shadow: var(--shadow-lg); overflow: hidden; color: #d7e2da; }
+    .term-bar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid rgb(255 255 255 / .07); background: rgb(255 255 255 / .02); }
+    .term-bar .lights i { width: 11px; height: 11px; } .term-bar .lights { gap: 7px; }
+    .term-bar span { margin-left: 10px; font: 12.5px var(--mono); color: #7f8c84; }
+    .term pre { margin: 0; padding: 20px 22px 24px; overflow-x: auto; font: 13.2px/1.75 var(--mono); }
+    .term .c { color: #6b7a71; } .term .g { color: #4ade80; } .term .y { color: #fcd34d; } .term .b { color: #7dd3fc; } .term .w { color: #f4f7f5; font-weight: 600; }
+    .pair { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 18px; }
+    .pair .app { display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--shadow-sm); font-weight: 600; font-size: 15px; }
+    .pair .app img, .pair .app .lsicon { width: 34px; height: 34px; border-radius: 9px; }
+    .pair .app .lsicon { background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--text-2); }
+    .pair .app .lsicon svg { width: 18px; height: 18px; }
+    .pair .swap { color: var(--brand-ink); }
+    .pair .swap svg { width: 26px; height: 26px; }
+
+    /* ---------- Privacy band ---------- */
+    .band {
+      border-radius: 32px; padding: clamp(36px, 6vw, 76px); position: relative; overflow: hidden; isolation: isolate;
+      background: radial-gradient(80% 120% at 0% 0%, #1fae58 0%, #0d7a3b 45%, #06391d 100%);
+      color: #ecfdf3;
+    }
+    .band::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .25; background-image: radial-gradient(rgb(255 255 255 / .5) 1px, transparent 1px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(120deg, transparent 30%, #000); mask-image: linear-gradient(120deg, transparent 30%, #000); }
+    .band .mark { position: absolute; right: -40px; bottom: -70px; width: 420px; color: #fff; opacity: .09; z-index: -1; }
+    .band .kicker { color: #bbf7d0; }
+    .band h2 { color: #fff; max-width: 14em; }
+    .band .sub { color: rgb(236 253 243 / .78); }
+    .pts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; margin-top: 52px; }
+    .pts div { border-top: 1px solid rgb(255 255 255 / .18); padding-top: 20px; }
+    .pts b { display: block; font-size: 17px; font-weight: 620; color: #fff; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .pts span { font-size: 15px; color: rgb(236 253 243 / .72); line-height: 1.5; }
+    @media (max-width: 900px) { .pts { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .pts { grid-template-columns: 1fr; gap: 20px; } .band { border-radius: 24px; } .band .mark { width: 260px; right: -60px; bottom: -40px; opacity: .06; } }
+
+    /* ---------- Steps ---------- */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: s; }
+    .step { padding: 30px; border-radius: 24px; background: var(--surface); border: 1px solid var(--line); position: relative; }
+    .step .n { font: 600 13px/1 var(--mono); color: var(--brand-ink); width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--brand); display: grid; place-items: center; margin-bottom: 22px; background: var(--brand-tint); }
+    .step h3 { margin: 0 0 8px; font-size: 20px; letter-spacing: -0.02em; font-weight: 620; }
+    .step p { margin: 0; color: var(--muted); font-size: 15.5px; }
+    @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+
+    /* ---------- FAQ ---------- */
+    .faq { display: grid; grid-template-columns: 1fr 1.6fr; gap: 64px; }
+    @media (max-width: 900px) { .faq { grid-template-columns: 1fr; gap: 24px; } }
+    .qa { border-top: 1px solid var(--line); }
+    .qa details { border-bottom: 1px solid var(--line); }
+    .qa summary { list-style: none; cursor: pointer; padding: 22px 44px 22px 0; font-size: 18px; font-weight: 580; letter-spacing: -0.015em; position: relative; }
+    .qa summary::-webkit-details-marker { display: none; }
+    .qa summary::after { content: ""; position: absolute; right: 6px; top: 50%; width: 12px; height: 12px; margin-top: -8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); rotate: 45deg; transition: rotate .25s, margin .25s; }
+    .qa details[open] summary::after { rotate: 225deg; margin-top: -2px; }
+    .qa summary:hover { color: var(--brand-ink); }
+    .qa .a { padding: 0 44px 24px 0; color: var(--muted); font-size: 16px; line-height: 1.65; }
+    .qa .a p { margin: 0 0 10px; } .qa .a p:last-child { margin: 0; }
+    .qa code { font: 14px var(--mono); color: var(--text-2); }
+
+    /* ---------- Final CTA ---------- */
+    .final { text-align: center; padding-top: 40px; }
+    .final .big-icon { width: 112px; height: 112px; margin: 0 auto 32px; border-radius: 28px; box-shadow: 0 30px 60px -20px rgb(22 163 74 / .6), 0 0 0 1px var(--line); }
+    .final h2 { font-size: clamp(40px, 6.4vw, 76px); }
+    .final .sub { margin: 0 auto 36px; }
+
+    /* ---------- Footer ---------- */
+    footer { border-top: 1px solid var(--line); margin-top: 120px; padding: 56px 0 64px; }
+    .foot { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 40px; }
+    .foot p { color: var(--muted); font-size: 14.5px; max-width: 300px; margin: 14px 0 0; }
+    .foot h4 { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); }
+    .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+    .foot a { text-decoration: none; color: var(--text-2); font-size: 15px; }
+    .foot a:hover { color: var(--brand-ink); }
+    .legal { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13.5px; }
+    @media (max-width: 760px) { .foot { grid-template-columns: 1fr 1fr; } .foot > div:first-child { grid-column: 1 / -1; } }
+
+    /* ---------- Reveal ---------- */
+    .js .reveal { opacity: 0; translate: 0 24px; transition: opacity .8s cubic-bezier(.2,.7,.2,1), translate .8s cubic-bezier(.2,.7,.2,1); }
+    .js .reveal.in { opacity: 1; translate: 0 0; }
+    .js .reveal.d1 { transition-delay: .08s; } .js .reveal.d2 { transition-delay: .16s; } .js .reveal.d3 { transition-delay: .24s; }
+    @media (prefers-reduced-motion: reduce) {
+      .js .reveal, .js .peer { opacity: 1 !important; translate: none !important; scale: none !important; transition: none !important; }
+      .orbit .pulse, .net .wire, .radar span { animation: none !important; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="nav">
-      <a class="brand" href="./"><img src="icon.svg" alt="">Slip</a>
-      <nav class="nav-links">
-        <a href="#platforms">Platforms</a>
-        <a href="#features">Features</a>
-        <a href="#localsend">LocalSend</a>
-        <a class="gh" href="https://github.com/nearbycoder/slip">GitHub</a>
-      </nav>
-    </header>
+  <!-- Shared icon symbols -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-laptop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M2 19h20"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="3"/><path d="M10.5 18.5h3"/></symbol>
+    <symbol id="i-desktop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+    <symbol id="i-tablet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-recv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.3" r=".9" fill="currentColor"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2.5L4.5 13.5H12l-1 8 8.5-11H12z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8L4.5 12l4 4M15.5 8l4 4-4 4"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h10a4 4 0 0 0 .6-8 5.5 5.5 0 0 0-10.7 1.3A3.4 3.4 0 0 0 7 18.5z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-4-4M20 16H6l4 4"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></symbol>
+    <symbol id="i-win" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.5-1v7H3zM11.5 4.4L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="16" rx="2.5"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15H17"/></symbol>
+    <symbol id="i-android" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5a7.5 7.5 0 0 1 15 0z"/><path d="M7.5 6.5l1.6 2.6M16.5 6.5l-1.6 2.6"/><circle cx="9" cy="13.3" r=".6" fill="currentColor"/><circle cx="15" cy="13.3" r=".6" fill="currentColor"/></symbol>
+  </svg>
 
-    <main>
-      <div class="hero">
-        <div>
-          <span class="eyebrow">Free &amp; open source</span>
-          <h1>Slip files to the device next to you.</h1>
-          <p class="lede">Send photos, documents, folders and text between your Mac, iPhone, Android, Windows and Linux machines over your local network. No cloud, no account, no cables. A truly native app on every platform.</p>
-          <div class="cta">
-            <a class="btn btn-primary" href="https://github.com/nearbycoder/slip/releases/latest">Download</a>
-            <a class="btn btn-ghost" href="https://github.com/nearbycoder/slip">View source</a>
+  <header class="nav" id="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="./" aria-label="Slip home"><img src="icon.svg" alt="" width="30" height="30">Slip</a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#platforms">Platforms</a>
+        <a href="#localsend">LocalSend</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="gh-link" href="https://github.com/nearbycoder/slip"><svg><use href="#i-github"/></svg><span>GitHub</span></a>
+        <a class="btn btn-primary btn-sm" href="#download">Download</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <div class="hero">
+      <div class="wrap">
+        <div class="hero-copy">
+          <a class="pill" href="#localsend"><b>New</b> Fully compatible with LocalSend <svg><use href="#i-arrow"/></svg></a>
+          <h1>Slip files to <span class="accent">anything nearby.</span></h1>
+          <p class="lede">Send photos, folders and text between your <strong>Mac, iPhone, Android, Windows and Linux</strong> devices over Wi-Fi. No cloud, no account, no cables. Just a beautiful native app on every platform.</p>
+          <div class="hero-cta" id="download">
+            <a class="btn btn-primary" id="dl-primary" href="https://github.com/nearbycoder/slip/releases"><svg><use href="#i-download"/></svg><span>Download Slip</span></a>
+            <a class="btn btn-secondary" href="https://github.com/nearbycoder/slip"><svg><use href="#i-github"/></svg>Star on GitHub</a>
+          </div>
+          <div class="hero-note">
+            <span><svg><use href="#i-check"/></svg>Free &amp; open source</span>
+            <span><svg><use href="#i-check"/></svg>Encrypted transfers</span>
+            <span><svg><use href="#i-check"/></svg>Works offline</span>
           </div>
         </div>
-        <div class="stage" aria-hidden="true">
-          <div class="device laptop">
-            <div class="screen-row short"></div>
-            <div class="peer"><i></i><b></b></div>
-            <div class="peer"><i></i><b></b></div>
+
+        <div class="stage-wrap">
+          <div class="stage" role="img" aria-label="Slip on a Mac sending 25 files to an iPhone, which accepts and receives them.">
+            <!-- Mac window -->
+            <div class="mac" aria-hidden="true">
+              <div class="mac-bar"><div class="lights"><i></i><i></i><i></i></div><div class="mac-title">Slip</div></div>
+              <aside class="mac-side">
+                <div class="side-item"><svg><use href="#i-recv"/></svg>Receive</div>
+                <div class="side-item on"><svg><use href="#i-send"/></svg>Send</div>
+                <div class="side-item"><svg><use href="#i-clock"/></svg>Transfers</div>
+                <div class="side-item"><svg><use href="#i-gear"/></svg>Settings</div>
+                <div class="side-me"><img src="icon.svg" alt=""><div><b>Clever Mango</b><small>192.168.1.24</small></div></div>
+              </aside>
+              <div class="mac-main">
+                <div class="mac-h"><h4>Send</h4><span class="scan"><i></i>Looking for devices</span></div>
+                <div class="tray">
+                  <div class="thumb ph1"></div><div class="thumb ph2"></div><div class="thumb ph3"></div><div class="thumb doc"><span>PDF</span></div>
+                  <div class="tray-meta"><b>Lisbon trip</b><small>25 files · 184 MB</small></div>
+                  <div class="add">+</div>
+                </div>
+                <div class="label">Nearby</div>
+                <div class="devices">
+                  <div class="dev target">
+                    <div class="dev-ic"><svg><use href="#i-phone"/></svg></div>
+                    <div><b>Fresh Peach</b><small>iPhone</small></div>
+                    <div class="state"><span class="s1">Waiting…</span><span class="s2">Sending</span><span class="s3">✓ Sent</span></div>
+                    <i class="bar"></i>
+                  </div>
+                  <div class="dev"><div class="dev-ic"><svg><use href="#i-desktop"/></svg></div><div><b>Kind Melon</b><small>Windows</small></div></div>
+                  <div class="dev"><div class="dev-ic"><svg><use href="#i-phone"/></svg></div><div><b>Neat Lemon</b><small>Pixel</small></div><span class="tag">LocalSend</span></div>
+                  <div class="dev"><div class="dev-ic"><svg><use href="#i-laptop"/></svg></div><div><b>Solid Pear</b><small>Fedora Linux</small></div></div>
+                </div>
+                <div class="compose"><span>Type a message or paste a link…</span><b><svg><use href="#i-send"/></svg></b></div>
+              </div>
+            </div>
+
+            <div class="fly" aria-hidden="true"><div class="card ph2"></div><div class="card ph1"></div><span class="count">25</span></div>
+
+            <!-- iPhone -->
+            <div class="phone" aria-hidden="true">
+              <div class="screen">
+                <div class="island"></div>
+                <div class="status"><span>9:41</span><i></i></div>
+                <div class="ph-head"><h5>Receive</h5><p><i></i>Ready to receive</p></div>
+                <div class="radar"><span></span><span></span><span></span><img src="icon.svg" alt=""></div>
+                <div class="ph-me"><b>Fresh Peach</b><small>Visible to nearby devices</small></div>
+                <div class="sheet">
+                  <div class="layer l1">
+                    <div class="from"><div class="dev-ic"><svg><use href="#i-laptop"/></svg></div><div><b>Clever Mango</b><small>MacBook Pro</small></div></div>
+                    <div class="ask">Wants to send you <b>25 files</b> (184 MB)</div>
+                    <div class="strip"><div class="thumb ph1"></div><div class="thumb ph2"></div><div class="thumb ph3"></div><div class="thumb ph4"></div><div class="more">+21</div></div>
+                    <div class="acts"><span>Decline</span><span class="yes">Accept</span></div>
+                  </div>
+                  <div class="layer l2">
+                    <div class="recv-t">Receiving…</div>
+                    <div class="recv-s">From Clever Mango</div>
+                    <div class="track"><i></i></div>
+                    <div class="files">
+                      <div><span class="thumb ph1"></span>IMG_2041.heic<em>4.2 MB</em></div>
+                      <div><span class="thumb ph2"></span>IMG_2042.heic<em>3.8 MB</em></div>
+                      <div><span class="thumb ph3"></span>IMG_2043.heic<em>5.1 MB</em></div>
+                    </div>
+                  </div>
+                  <div class="layer l3">
+                    <div class="check"><svg><use href="#i-check"/></svg></div>
+                    <div class="recv-t">Saved to Files</div>
+                    <div class="recv-s">25 files from Clever Mango</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="device phone">
-            <div class="screen-row"></div>
-            <div class="screen-row short"></div>
+        </div>
+
+        <div class="strip-band reveal">
+          <div class="os-row">
+            <span class="os"><svg><use href="#i-laptop"/></svg>macOS</span>
+            <span class="os"><svg><use href="#i-phone"/></svg>iOS</span>
+            <span class="os"><svg><use href="#i-android"/></svg>Android</span>
+            <span class="os"><svg><use href="#i-win"/></svg>Windows</span>
+            <span class="os"><svg><use href="#i-term"/></svg>Linux</span>
           </div>
-          <div class="chip"></div>
         </div>
       </div>
+    </div>
 
-      <section id="platforms">
-        <h2>Native everywhere.</h2>
-        <p class="section-lede">Each Slip client is built with the platform's own tools, so it looks, feels and behaves the way an app on that device should.</p>
-        <div class="platforms">
-          <div class="platform">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg>
-            <h3>macOS</h3>
-            <p>Menu bar friendly, drag and drop, saves to Downloads.</p>
-            <span class="stack">Swift · SwiftUI</span>
-          </div>
-          <div class="platform">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>
-            <h3>iOS</h3>
-            <p>Share sheet support, received files land in the Files app.</p>
-            <span class="stack">Swift · SwiftUI</span>
-          </div>
-          <div class="platform">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><circle cx="12" cy="18" r="0.6"/></svg>
-            <h3>Android</h3>
-            <p>Material You, share target, saves to Download/Slip.</p>
-            <span class="stack">Kotlin · Compose</span>
-          </div>
-          <div class="platform">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
-            <h3>Windows</h3>
-            <p>Fluent design with Mica, notifications and drag and drop.</p>
-            <span class="stack">C# · WinUI 3</span>
-          </div>
-          <div class="platform">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
-            <h3>Linux</h3>
-            <p>A proper GNOME app that fits right in on any desktop.</p>
-            <span class="stack">Rust · GTK 4 · libadwaita</span>
-          </div>
+    <!-- ============ FEATURES ============ -->
+    <section id="features">
+      <div class="wrap">
+        <div class="head reveal">
+          <div class="kicker">Features</div>
+          <h2>Everything you need.<br><span class="dim">Nothing you don't.</span></h2>
+          <p class="sub">Slip does one thing, moving files between your devices, and it does it really well.</p>
         </div>
-      </section>
+        <div class="bento">
+          <article class="tile t-4 t-discover reveal" data-watch>
+            <div class="copy">
+              <h3>Finds your devices automatically</h3>
+              <p>Open Slip and nearby devices just appear. Discovery runs over multicast, and if your network blocks it, Slip quietly scans the subnet instead.</p>
+            </div>
+            <div class="orbit" aria-hidden="true">
+              <div class="ring r3"></div><div class="ring r2"></div><div class="ring r1"></div>
+              <div class="pulse"></div>
+              <img class="core" src="icon.svg" alt="">
+              <div class="peer p1"><span class="dev-ic"><svg><use href="#i-phone"/></svg></span><span><b>Fresh Peach</b><small>iPhone</small></span></div>
+              <div class="peer p2"><span class="dev-ic"><svg><use href="#i-desktop"/></svg></span><span><b>Kind Melon</b><small>Windows</small></span></div>
+              <div class="peer p3"><span class="dev-ic"><svg><use href="#i-laptop"/></svg></span><span><b>Solid Pear</b><small>Linux</small></span></div>
+              <div class="peer p4"><span class="dev-ic"><svg><use href="#i-tablet"/></svg></span><span><b>Neat Lemon</b><small>Android</small></span></div>
+            </div>
+          </article>
 
-      <section id="features">
-        <h2>Everything you need, nothing you don't.</h2>
-        <p class="section-lede">Slip finds nearby devices automatically and moves files directly between them.</p>
-        <div class="features">
-          <div class="feature"><h3>Private by design</h3><p>Files travel straight from one device to the other over HTTPS. Nothing is uploaded anywhere.</p></div>
-          <div class="feature"><h3>Automatic discovery</h3><p>Devices on the same Wi-Fi show up on their own, with a subnet scan fallback for tricky networks.</p></div>
-          <div class="feature"><h3>Files, folders &amp; text</h3><p>Send anything: single files, whole folders, or a quick snippet of text or a link.</p></div>
-          <div class="feature"><h3>Accept or decline</h3><p>Review every incoming transfer, or turn on Quick Save for devices you trust.</p></div>
-          <div class="feature"><h3>PIN protection</h3><p>Require a PIN before anyone can send you anything, ideal on shared networks.</p></div>
-          <div class="feature"><h3>Fast</h3><p>Parallel, streamed transfers at the full speed of your local network.</p></div>
+          <article class="tile t-2 reveal d1">
+            <div class="shield"><svg><use href="#i-lock"/></svg></div>
+            <div style="margin-top:22px">
+              <h3>Encrypted end to end</h3>
+              <p>Every transfer runs over HTTPS, with each device's identity tied to its own certificate.</p>
+            </div>
+            <div class="art lockart">
+              <div class="cert"><span class="k">protocol</span> https <span class="ok">●</span><br><span class="k">fingerprint</span> 9f3a…c41e</div>
+            </div>
+          </article>
+
+          <article class="tile t-2 reveal">
+            <h3>Files, folders &amp; text</h3>
+            <p>Send a single photo, an entire folder tree, or a quick snippet of text or a link.</p>
+            <div class="art types">
+              <span class="type"><i class="i1">JPG</i>Photos</span>
+              <span class="type"><i class="i2">PDF</i>Docs</span>
+              <span class="type"><i class="i3">DIR</i>Folders</span>
+              <span class="type"><i class="i4">MP4</i>Videos</span>
+              <span class="type"><i class="i5">TXT</i>Text</span>
+            </div>
+          </article>
+
+          <article class="tile t-2 t-quick reveal d1" data-watch>
+            <h3>Accept, or don't ask</h3>
+            <p>Review every incoming transfer, or turn on Quick Save and let files land straight in your Downloads.</p>
+            <div class="art">
+              <div class="toggle-row"><div><b>Quick Save</b><small>Accept incoming files automatically</small></div><span class="switch" aria-hidden="true"></span></div>
+            </div>
+          </article>
+
+          <article class="tile t-2 reveal d2">
+            <h3>PIN protection</h3>
+            <p>On a shared network? Require a PIN before anyone can send you anything.</p>
+            <div class="art pin" aria-hidden="true"><span>4</span><span>8</span><span>1</span><span class="f">5</span><span></span><span></span></div>
+          </article>
+
+          <article class="tile t-3 reveal">
+            <h3>Never leaves your network</h3>
+            <p>Files go directly from one device to the other. There's no server in the middle, no upload, and no internet connection required.</p>
+            <div class="art">
+              <div class="net" aria-hidden="true">
+                <div class="node"><svg><use href="#i-laptop"/></svg></div>
+                <div class="wire"><div class="cloud"><svg><use href="#i-cloud"/></svg></div></div>
+                <div class="node"><svg><use href="#i-phone"/></svg></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="tile t-3 t-speed reveal d1" data-watch>
+            <h3>As fast as your Wi-Fi</h3>
+            <p>Files stream straight to disk, several at once, so big transfers finish at the full speed of your local network.</p>
+            <div class="art streams" aria-hidden="true">
+              <div class="stream"><span>IMG_2041.heic</span><div class="tr"><i style="--p:1"></i></div><em>100%</em></div>
+              <div class="stream"><span>drone-4k.mov</span><div class="tr"><i style="--p:.72"></i></div><em>72%</em></div>
+              <div class="stream"><span>itinerary.pdf</span><div class="tr"><i style="--p:.46"></i></div><em>46%</em></div>
+            </div>
+          </article>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="how">
-        <h2>How it works</h2>
-        <p class="section-lede">Three steps, no setup.</p>
-        <ol class="steps">
-          <li><h3>Open Slip on both devices</h3><p>Make sure they're on the same network. They'll find each other in a second or two.</p></li>
-          <li><h3>Pick what to send</h3><p>Choose files, a folder, or type a message, then tap the device you want to send to.</p></li>
-          <li><h3>Accept on the other side</h3><p>The receiver gets a prompt, taps Accept, and the files land in their Downloads.</p></li>
-        </ol>
-      </section>
+    <!-- ============ PLATFORMS ============ -->
+    <section id="platforms" style="padding-top:40px">
+      <div class="wrap">
+        <div class="head center reveal">
+          <div class="kicker">Platforms</div>
+          <h2>Truly native. Five times over.</h2>
+          <p class="sub">No web views or lowest-common-denominator UI. Each Slip app is written with its platform's own language and toolkit, so it feels right at home.</p>
+        </div>
+        <div class="plats">
+          <article class="plat reveal">
+            <div class="shot" aria-hidden="true">
+              <div class="mini"><div class="bar"><div class="lights"><i></i><i></i><i></i></div>Slip</div>
+                <div class="rows"><div class="row"><i></i><b>Fresh Peach</b><small>iPhone</small></div><div class="row"><i></i><b>Kind Melon</b><small>Windows</small></div><div class="row"><i></i><b>Solid Pear</b><small>Linux</small></div></div>
+              </div>
+            </div>
+            <div class="body">
+              <h3><svg><use href="#i-laptop"/></svg>macOS</h3>
+              <p>Drag files onto a device to send. Lives in your menu bar, and saves to Downloads.</p>
+              <div class="chips"><span>Swift</span><span>SwiftUI</span><span>macOS 14+</span></div>
+              <a class="more" href="https://github.com/nearbycoder/slip/tree/main/apple">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
+            </div>
+          </article>
+          <article class="plat reveal d1">
+            <div class="shot" aria-hidden="true">
+              <div class="handset"><div class="scr"><div class="t">Send</div><div class="card"><i></i>Clever Mango</div><div class="card"><i></i>Kind Melon</div><div class="card"><i></i>Neat Lemon</div><div class="tabs"><i></i><i></i><i></i><i></i></div></div></div>
+            </div>
+            <div class="body">
+              <h3><svg><use href="#i-phone"/></svg>iOS</h3>
+              <p>Pick from Photos or Files. Everything you receive shows up right in the Files app.</p>
+              <div class="chips"><span>Swift</span><span>SwiftUI</span><span>iOS 17+</span></div>
+              <a class="more" href="https://github.com/nearbycoder/slip/tree/main/apple">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
+            </div>
+          </article>
+          <article class="plat reveal d2">
+            <div class="shot" aria-hidden="true">
+              <div class="handset android"><div class="scr"><div class="t">Nearby</div><div class="card"><i></i>Clever Mango</div><div class="card"><i></i>Fresh Peach</div><div class="card"><i></i>Solid Pear</div><div class="fab"></div><div class="navb"><i></i><i></i><i></i><i></i></div></div></div>
+            </div>
+            <div class="body">
+              <h3><svg><use href="#i-android"/></svg>Android</h3>
+              <p>Material You theming, a system share target, and files saved to Download/Slip.</p>
+              <div class="chips"><span>Kotlin</span><span>Jetpack Compose</span><span>Android 8+</span></div>
+              <a class="more" href="https://github.com/nearbycoder/slip/tree/main/android">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
+            </div>
+          </article>
+          <article class="plat wide reveal">
+            <div class="shot" aria-hidden="true">
+              <div class="mini win"><div class="bar"><span>Slip</span><span class="caps"><span>—</span><span>☐</span><span>✕</span></span></div>
+                <div class="rows"><div class="row"><i></i><b>Clever Mango</b><small>macOS</small></div><div class="row"><i></i><b>Fresh Peach</b><small>iPhone</small></div><div class="row"><i></i><b>Neat Lemon</b><small>Android</small></div></div>
+              </div>
+            </div>
+            <div class="body">
+              <h3><svg><use href="#i-win"/></svg>Windows</h3>
+              <p>Fluent design with Mica, toast notifications, and drag and drop from Explorer.</p>
+              <div class="chips"><span>C#</span><span>WinUI 3</span><span>Windows 10 &amp; 11</span><span>x64 · ARM64</span></div>
+              <a class="more" href="https://github.com/nearbycoder/slip/tree/main/windows">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
+            </div>
+          </article>
+          <article class="plat wide reveal d1">
+            <div class="shot" aria-hidden="true">
+              <div class="mini gnome"><div class="bar">Slip<span class="x"></span></div>
+                <div class="rows"><div class="row"><i></i><b>Clever Mango</b><small>macOS</small></div><div class="row"><i></i><b>Kind Melon</b><small>Windows</small></div><div class="row"><i></i><b>Fresh Peach</b><small>iPhone</small></div></div>
+              </div>
+            </div>
+            <div class="body">
+              <h3><svg><use href="#i-term"/></svg>Linux</h3>
+              <p>A proper GNOME app built with libadwaita, at home on any desktop, with Flatpak packaging.</p>
+              <div class="chips"><span>Rust</span><span>GTK 4</span><span>libadwaita</span><span>Flatpak</span></div>
+              <a class="more" href="https://github.com/nearbycoder/slip/tree/main/linux">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
 
-      <section id="localsend">
-        <div class="compat">
-          <div>
-            <h2>Works with LocalSend.</h2>
-            <p class="section-lede" style="margin-bottom:0">Slip implements the open <a href="https://github.com/localsend/protocol">LocalSend protocol v2</a>, so it sends to and receives from any LocalSend app, as well as other Slip devices. Bring the people you share with along, whichever app they use.</p>
+    <!-- ============ HOW ============ -->
+    <section id="how" style="padding-top:40px">
+      <div class="wrap">
+        <div class="head reveal">
+          <div class="kicker">How it works</div>
+          <h2>Three taps. <span class="dim">Zero setup.</span></h2>
+        </div>
+        <div class="steps">
+          <div class="step reveal"><div class="n">01</div><h3>Open Slip on both devices</h3><p>Join the same Wi-Fi network and they'll find each other within a second or two.</p></div>
+          <div class="step reveal d1"><div class="n">02</div><h3>Pick what to send</h3><p>Choose files, a folder, or type a message, then tap the device you want to send it to.</p></div>
+          <div class="step reveal d2"><div class="n">03</div><h3>Accept on the other side</h3><p>The receiver sees who's sending what, taps Accept, and the files land in their Downloads.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LOCALSEND ============ -->
+    <section id="localsend" style="padding-top:40px">
+      <div class="wrap ls">
+        <div class="reveal">
+          <div class="kicker">Compatibility</div>
+          <h2>Speaks LocalSend, fluently.</h2>
+          <p class="sub">Slip implements the open <a href="https://github.com/localsend/protocol" style="color:var(--brand-ink)">LocalSend protocol v2</a>. Send to and receive from anyone running LocalSend, as well as other Slip devices, whichever app your friends prefer.</p>
+          <ul class="specs">
+            <li><span class="ic"><svg><use href="#i-wifi"/></svg></span><div><b>Multicast discovery</b><span>Announces on <code>224.0.0.167:53317</code>, with an HTTP subnet scan as fallback.</span></div></li>
+            <li><span class="ic"><svg><use href="#i-lock"/></svg></span><div><b>REST over HTTPS</b><span>Self-signed TLS, with device fingerprints taken from each certificate's SHA-256.</span></div></li>
+            <li><span class="ic"><svg><use href="#i-code"/></svg></span><div><b>Open and tested</b><span>Every Slip client is tested against every other, in both directions, over HTTPS and HTTP.</span></div></li>
+          </ul>
+        </div>
+        <div class="reveal d1">
+          <div class="pair" aria-hidden="true">
+            <span class="app"><img src="icon.svg" alt="">Slip</span>
+            <span class="swap"><svg><use href="#i-swap"/></svg></span>
+            <span class="app"><span class="lsicon"><svg><use href="#i-send"/></svg></span>LocalSend</span>
           </div>
-          <pre><span class="k">POST</span> /api/localsend/v2/prepare-upload
+          <div class="term">
+            <div class="term-bar"><div class="lights"><i></i><i></i><i></i></div><span>prepare-upload</span></div>
+<pre><span class="g">POST</span> <span class="w">/api/localsend/v2/prepare-upload</span>
 {
-  "info": { "alias": "Clever Mango",
-            "deviceType": "desktop" },
-  "files": { "a1": { "fileName": "trip.jpg",
-                     "size": 2481123 } }
+  <span class="b">"info"</span>: { <span class="b">"alias"</span>: <span class="y">"Clever Mango"</span>,
+            <span class="b">"deviceModel"</span>: <span class="y">"macOS"</span>,
+            <span class="b">"protocol"</span>: <span class="y">"https"</span> },
+  <span class="b">"files"</span>: {
+    <span class="b">"a1f0"</span>: { <span class="b">"fileName"</span>: <span class="y">"lisbon.heic"</span>,
+              <span class="b">"size"</span>: <span class="y">4194304</span> }
+  }
 }
-<span class="k">200</span> { "sessionId": "…", "files": { "a1": "…" } }</pre>
-        </div>
-      </section>
-    </main>
 
-    <footer>
-      <span>Slip is open source under the MIT license.</span>
-      <span><a href="https://github.com/nearbycoder/slip">GitHub</a> · <a href="https://github.com/nearbycoder/slip/releases">Releases</a> · <a href="https://github.com/nearbycoder/slip/issues">Issues</a></span>
-    </footer>
-  </div>
+<span class="c"># receiver taps Accept</span>
+<span class="g">200 OK</span>  { <span class="b">"sessionId"</span>: <span class="y">"7c2e…"</span>, <span class="b">"files"</span>: { <span class="b">"a1f0"</span>: <span class="y">"tok_…"</span> } }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRIVACY ============ -->
+    <section style="padding-top:40px">
+      <div class="wrap">
+        <div class="band reveal">
+          <svg class="mark" viewBox="236 230 552 564" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="120" aria-hidden="true"><path d="M 640 296 H 444 A 108 108 0 0 0 444 512 H 474" transform="translate(-34 0)"/><path d="M 550 512 H 580 A 108 108 0 0 1 580 728 H 384" transform="translate(34 0)"/></svg>
+          <div class="kicker">Privacy</div>
+          <h2>Your files never touch a server.</h2>
+          <p class="sub">Slip was built for people who'd rather not hand their photos to a cloud just to move them half a metre.</p>
+          <div class="pts">
+            <div><b>No account</b><span>Nothing to sign up for. Open the app and go.</span></div>
+            <div><b>No internet needed</b><span>Works on any local network, even one with no internet connection at all.</span></div>
+            <div><b>No tracking</b><span>No analytics, no telemetry, no ads. Ever.</span></div>
+            <div><b>Open source</b><span>Every line is on GitHub under the MIT license.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq">
+      <div class="wrap faq">
+        <div class="reveal">
+          <div class="kicker">FAQ</div>
+          <h2>Questions, answered.</h2>
+          <p class="sub">Something else on your mind? <a href="https://github.com/nearbycoder/slip/issues" style="color:var(--brand-ink)">Open an issue</a> on GitHub.</p>
+        </div>
+        <div class="qa reveal d1">
+          <details open><summary>Is Slip really free?</summary><div class="a"><p>Yes. Slip is free and open source under the MIT license, with no in-app purchases, subscriptions or ads.</p></div></details>
+          <details><summary>Does it work with LocalSend?</summary><div class="a"><p>Yes. Slip speaks the LocalSend v2 protocol, so Slip and LocalSend devices discover each other and exchange files in both directions.</p></div></details>
+          <details><summary>Do both devices need to be on the same network?</summary><div class="a"><p>Yes. Slip works over your local network, whether that's home Wi-Fi, an office LAN, or a phone hotspot. Nothing is routed through the internet.</p></div></details>
+          <details><summary>Is it secure?</summary><div class="a"><p>Transfers are encrypted with TLS by default. Each device generates its own certificate and is identified by that certificate's fingerprint. You can also require a PIN, and nothing is saved unless you accept it (or turn on Quick Save).</p></div></details>
+          <details><summary>Why build five separate native apps?</summary><div class="a"><p>Because they feel better. Each Slip app uses its platform's own toolkit (SwiftUI, Jetpack Compose, WinUI 3 and GTK 4), so it gets native controls, accessibility, notifications and file pickers for free, and it looks the way an app on your device should.</p></div></details>
+          <details><summary>Why doesn't my iPhone find devices right away?</summary><div class="a"><p>iOS asks for permission to access your local network the first time Slip runs. Tap <em>Allow</em>. If it was declined, turn it back on in Settings › Privacy &amp; Security › Local Network.</p></div></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FINAL CTA ============ -->
+    <section class="final" style="padding-bottom:0">
+      <div class="wrap reveal">
+        <img class="big-icon" src="icon.svg" alt="" width="112" height="112">
+        <h2>Slip it over.</h2>
+        <p class="sub">Get Slip on every device you own. It's free, and it takes a few seconds.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="https://github.com/nearbycoder/slip/releases"><svg><use href="#i-download"/></svg><span class="dl-label">Download Slip</span></a>
+          <a class="btn btn-secondary" href="https://github.com/nearbycoder/slip"><svg><use href="#i-github"/></svg>View source</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot">
+        <div>
+          <a class="brand" href="./"><img src="icon.svg" alt="" width="30" height="30">Slip</a>
+          <p>Native, open-source file sharing for every device you own. Compatible with LocalSend.</p>
+        </div>
+        <div><h4>Product</h4><ul><li><a href="#features">Features</a></li><li><a href="#localsend">LocalSend</a></li><li><a href="#faq">FAQ</a></li><li><a href="https://github.com/nearbycoder/slip/releases">Releases</a></li></ul></div>
+        <div><h4>Platforms</h4><ul><li><a href="https://github.com/nearbycoder/slip/tree/main/apple">macOS &amp; iOS</a></li><li><a href="https://github.com/nearbycoder/slip/tree/main/android">Android</a></li><li><a href="https://github.com/nearbycoder/slip/tree/main/windows">Windows</a></li><li><a href="https://github.com/nearbycoder/slip/tree/main/linux">Linux</a></li></ul></div>
+        <div><h4>Project</h4><ul><li><a href="https://github.com/nearbycoder/slip">GitHub</a></li><li><a href="https://github.com/nearbycoder/slip/issues">Issues</a></li><li><a href="https://github.com/nearbycoder/slip/blob/main/protocol/IMPLEMENTATION.md">Protocol notes</a></li><li><a href="https://github.com/nearbycoder/slip/blob/main/LICENSE">MIT License</a></li></ul></div>
+      </div>
+      <div class="legal"><span>© <span id="yr">2026</span> Slip contributors.</span><span>LocalSend is a separate open-source project. Slip is not affiliated with it.</span></div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      root.classList.add("js");
+
+      // Name the visitor's platform on the primary download buttons.
+      var ua = navigator.userAgent, os = null;
+      if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) os = "iOS";
+      else if (/Android/.test(ua)) os = "Android";
+      else if (/Mac/.test(ua)) os = "macOS";
+      else if (/Win/.test(ua)) os = "Windows";
+      else if (/Linux|X11/.test(ua)) os = "Linux";
+      if (os) {
+        var label = "Download for " + os;
+        document.querySelectorAll("#dl-primary span, .dl-label").forEach(function (el) { el.textContent = label; });
+      }
+
+      document.getElementById("yr").textContent = new Date().getFullYear();
+
+      var nav = document.getElementById("nav");
+      var onScroll = function () { nav.classList.toggle("scrolled", window.scrollY > 8); };
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+
+      var els = document.querySelectorAll(".reveal, [data-watch]");
+      if (!("IntersectionObserver" in window)) { els.forEach(function (el) { el.classList.add("in"); }); return; }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+      }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+      els.forEach(function (el) { io.observe(el); });
+    })();
+  </script>
 </body>
 </html>
