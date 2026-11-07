@@ -56,7 +56,7 @@ private struct GeneralSettings: View {
                 Picker("Appearance", selection: $controller.settings.theme) {
                     ForEach(AppTheme.allCases) { Text($0.title).tag($0) }
                 }
-                Toggle(isOn: $controller.settings.showMenuBarExtra) {
+                Toggle(isOn: AppModel.menuBar.binding) {
                     Text("Show in menu bar")
                     Text("Keep receiving after the window is closed.")
                 }

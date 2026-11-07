@@ -6,6 +6,7 @@ import SwiftUI
 enum AppModel {
     static let controller = SlipController()
     static let selection = SendSelection()
+    static let menuBar = MenuBarVisibility(isInserted: controller.settings.showMenuBarExtra)
     static var openMainWindow: (() -> Void)?
 
     static func queueForSending(_ urls: [URL]) {
@@ -71,7 +72,7 @@ struct SlipMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var controller = AppModel.controller
     @State private var selection = AppModel.selection
-    @AppStorage(MenuBarKey.showExtra) private var showMenuBarExtra = true
+    @State private var menuBar = AppModel.menuBar
 
     var body: some Scene {
         Window("Slip", id: "main") {
@@ -81,7 +82,7 @@ struct SlipMacApp: App {
                 .environment(selection)
                 .frame(minWidth: 760, minHeight: 520)
         }
-        .defaultSize(width: 960, height: 660)
+        .defaultSize(width: 960, height: 680)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Add Files…") { NotificationCenter.default.post(name: .slipAddFiles, object: nil) }
@@ -106,8 +107,8 @@ struct SlipMacApp: App {
         }
 
         // Scene bodies read no controller state (that re-evaluates every scene while a window is
-        // being built); the root view mirrors the setting into this key instead.
-        MenuBarExtra(isInserted: $showMenuBarExtra) {
+        // being built), only this one value.
+        MenuBarExtra(isInserted: menuBar.binding) {
             MenuBarContent().environment(controller).environment(selection)
         } label: {
             MenuBarLabel().environment(controller)
@@ -134,8 +135,30 @@ private struct MenuBarLabel: View {
     }
 }
 
-enum MenuBarKey {
-    static let showExtra = "slip.menuBarExtra.shown"
+/// Whether the menu bar extra is inserted, mirrored into `settings.showMenuBarExtra`.
+///
+/// Not `@AppStorage`: that re-runs the scene on every UserDefaults write, and inserting the
+/// extra makes AppKit write its status item visibility to UserDefaults, which re-inserts the
+/// extra, and so on. On a fresh install that loop froze the app at launch.
+@MainActor
+@Observable
+final class MenuBarVisibility {
+    private(set) var isInserted: Bool
+
+    init(isInserted: Bool) { self.isInserted = isInserted }
+
+    /// Ignores writes of the current value, which SwiftUI makes while updating the scene.
+    func set(_ inserted: Bool) {
+        guard inserted != isInserted else { return }
+        isInserted = inserted
+        if AppModel.controller.settings.showMenuBarExtra != inserted {
+            AppModel.controller.settings.showMenuBarExtra = inserted
+        }
+    }
+
+    var binding: Binding<Bool> {
+        Binding(get: { self.isInserted }, set: { self.set($0) })
+    }
 }
 
 extension Notification.Name {
@@ -165,7 +188,6 @@ struct MacRootView: View {
     // `-SlipTab send` opens a specific pane (developer override, like `-SlipPort`).
     @State private var item: SidebarItem? = SidebarItem(rawValue: UserDefaults.standard.string(forKey: "SlipTab") ?? "") ?? .receive
     @State private var showingWelcome = Welcome.isNeeded
-    @AppStorage(MenuBarKey.showExtra) private var showMenuBarExtra = true
 
     @ViewBuilder
     private var detail: some View {
@@ -224,14 +246,9 @@ struct MacRootView: View {
         }
         .onAppear {
             AppModel.openMainWindow = { [openWindow] in openWindow(id: "main") }
-            showMenuBarExtra = controller.settings.showMenuBarExtra
             #if DEBUG
             if UserDefaults.standard.bool(forKey: "SlipOpenSettings") { openSettings() }
             #endif
-        }
-        .onChange(of: controller.settings.showMenuBarExtra) { _, shown in showMenuBarExtra = shown }
-        .onChange(of: showMenuBarExtra) { _, shown in
-            if controller.settings.showMenuBarExtra != shown { controller.settings.showMenuBarExtra = shown }
         }
         .task {
             #if DEBUG

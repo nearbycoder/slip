@@ -72,10 +72,19 @@ They let you run several instances on one machine.
 
 ### Releasing the Mac app
 
-`scripts/release-mac.sh` archives a universal (Apple silicon + Intel) build, signs it with
-Developer ID, notarizes and staples it, and writes `build/mac-release/Slip-macOS.zip`. It uses the
-Apple account signed in to Xcode, so it runs locally rather than in CI. Attach the zip to a GitHub
-Release; the site links to `releases/latest/download/Slip-macOS.zip`, so keep that file name.
+Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, then run
+`scripts/release-mac.sh publish`. It runs the SlipKit tests, archives a universal (Apple silicon +
+Intel) build, signs it with Developer ID, notarizes and staples it, and packages
+`Slip-<version>.dmg`, `Slip.dmg` (the same file, for the stable latest-download link the site
+uses), `Slip-<version>.zip` and `SHA256SUMS.txt` into `build/mac-release/dist`. With `publish` it
+also tags `v<version>` and creates the GitHub release. Signing uses the Apple account signed in to
+Xcode, so it runs locally rather than in CI.
+
+The DMG opens to a custom installer window (branded background, Slip and an Applications shortcut
+side by side, the Slip volume icon), built with [dmgbuild](https://github.com/dmgbuild/dmgbuild),
+which the script installs into `build/.venv`. The layout lives in `Resources/dmg/settings.py`; the
+background is drawn by `swift scripts/make-dmg-background.swift` (add `--preview light|dark` to
+check it with mock icons and labels).
 
 ### macOS
 

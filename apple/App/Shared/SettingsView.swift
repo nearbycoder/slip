@@ -95,7 +95,7 @@ struct SettingsView: View {
                     ForEach(AppTheme.allCases) { Text($0.title).tag($0) }
                 }
                 #if os(macOS)
-                Toggle("Show in menu bar", isOn: $controller.settings.showMenuBarExtra)
+                Toggle("Show in menu bar", isOn: AppModel.menuBar.binding)
                 #endif
             }
 

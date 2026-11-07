@@ -864,7 +864,7 @@
               <p>Drag files onto a device to send. Lives in your menu bar, and saves to Downloads.</p>
               <div class="chips"><span>Swift</span><span>SwiftUI</span><span>macOS 14+</span><span>Apple silicon · Intel</span></div>
               <div class="links">
-                <a class="more" href="https://github.com/nearbycoder/slip/releases/latest/download/Slip-macOS.zip"><svg width="15" height="15"><use href="#i-download"/></svg>Download for Mac</a>
+                <a class="more" href="https://github.com/nearbycoder/slip/releases/latest/download/Slip.dmg"><svg width="15" height="15"><use href="#i-download"/></svg>Download for Mac</a>
                 <a class="more" href="https://github.com/nearbycoder/slip/tree/main/apple">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
               </div>
             </div>
@@ -1058,7 +1058,7 @@
         document.querySelectorAll("#dl-primary span, .dl-label").forEach(function (el) { el.textContent = label; });
       }
       // Platforms with a published build download directly; the rest go to Releases.
-      var direct = { macOS: "https://github.com/nearbycoder/slip/releases/latest/download/Slip-macOS.zip" };
+      var direct = { macOS: "https://github.com/nearbycoder/slip/releases/latest/download/Slip.dmg" };
       if (direct[os]) {
         document.querySelectorAll("a.dl").forEach(function (el) { el.href = direct[os]; });
       }

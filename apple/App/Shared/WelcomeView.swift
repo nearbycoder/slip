@@ -100,7 +100,7 @@ struct WelcomeView: View {
         .onAppear { alias = controller.settings.alias }
         .interactiveDismissDisabled()
         #if os(macOS)
-        .frame(width: 520, height: 640)
+        .frame(width: 520, height: 600)
         #endif
     }
 
