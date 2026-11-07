@@ -70,6 +70,13 @@ To run on a device, or to get a sandboxed macOS build, set your team under
 Launch arguments for development (not saved): `-SlipPort 53322 -SlipQuickSave YES -SlipAlias "Test"`.
 They let you run several instances on one machine.
 
+### Releasing the Mac app
+
+`scripts/release-mac.sh` archives a universal (Apple silicon + Intel) build, signs it with
+Developer ID, notarizes and staples it, and writes `build/mac-release/Slip-macOS.zip`. It uses the
+Apple account signed in to Xcode, so it runs locally rather than in CI. Attach the zip to a GitHub
+Release; the site links to `releases/latest/download/Slip-macOS.zip`, so keep that file name.
+
 ### macOS
 
 - A window with a sidebar (Receive, Send, Transfers, Settings), plus nearby devices that accept dropped files.

@@ -479,6 +479,7 @@
     .chips span { font: 500 12.5px/1 var(--mono); padding: 6px 9px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); }
     .plat .more { margin-top: auto; padding-top: 10px; font-size: 14.5px; font-weight: 600; color: var(--brand-ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
     .plat .more:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .plat .links { margin-top: auto; display: flex; flex-wrap: wrap; gap: 4px 20px; }
     @media (max-width: 960px) { .plat, .plat.wide { grid-column: span 3; } .plat:last-child { grid-column: 1 / -1; } }
     @media (max-width: 640px) { .plats { grid-template-columns: 1fr; } .plat, .plat.wide, .plat:last-child { grid-column: auto; } }
 
@@ -661,7 +662,7 @@
           <h1>Slip files to <span class="accent">anything nearby.</span></h1>
           <p class="lede">Send photos, folders and text between your <strong>Mac, iPhone, Android, Windows and Linux</strong> devices over Wi-Fi. No cloud, no account, no cables. Just a beautiful native app on every platform.</p>
           <div class="hero-cta" id="download">
-            <a class="btn btn-primary" id="dl-primary" href="https://github.com/nearbycoder/slip/releases"><svg><use href="#i-download"/></svg><span>Download Slip</span></a>
+            <a class="btn btn-primary dl" id="dl-primary" href="https://github.com/nearbycoder/slip/releases"><svg><use href="#i-download"/></svg><span>Download Slip</span></a>
             <a class="btn btn-secondary" href="https://github.com/nearbycoder/slip"><svg><use href="#i-github"/></svg>Star on GitHub</a>
           </div>
           <div class="hero-note">
@@ -861,8 +862,11 @@
             <div class="body">
               <h3><svg><use href="#i-laptop"/></svg>macOS</h3>
               <p>Drag files onto a device to send. Lives in your menu bar, and saves to Downloads.</p>
-              <div class="chips"><span>Swift</span><span>SwiftUI</span><span>macOS 14+</span></div>
-              <a class="more" href="https://github.com/nearbycoder/slip/tree/main/apple">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
+              <div class="chips"><span>Swift</span><span>SwiftUI</span><span>macOS 14+</span><span>Apple silicon · Intel</span></div>
+              <div class="links">
+                <a class="more" href="https://github.com/nearbycoder/slip/releases/latest/download/Slip-macOS.zip"><svg width="15" height="15"><use href="#i-download"/></svg>Download for Mac</a>
+                <a class="more" href="https://github.com/nearbycoder/slip/tree/main/apple">Source &amp; build guide <svg width="15" height="15"><use href="#i-arrow"/></svg></a>
+              </div>
             </div>
           </article>
           <article class="plat reveal d1">
@@ -1015,7 +1019,7 @@
         <h2>Slip it over.</h2>
         <p class="sub">Get Slip on every device you own. It's free, and it takes a few seconds.</p>
         <div class="hero-cta">
-          <a class="btn btn-primary" href="https://github.com/nearbycoder/slip/releases"><svg><use href="#i-download"/></svg><span class="dl-label">Download Slip</span></a>
+          <a class="btn btn-primary dl" href="https://github.com/nearbycoder/slip/releases"><svg><use href="#i-download"/></svg><span class="dl-label">Download Slip</span></a>
           <a class="btn btn-secondary" href="https://github.com/nearbycoder/slip"><svg><use href="#i-github"/></svg>View source</a>
         </div>
       </div>
@@ -1052,6 +1056,11 @@
       if (os) {
         var label = "Download for " + os;
         document.querySelectorAll("#dl-primary span, .dl-label").forEach(function (el) { el.textContent = label; });
+      }
+      // Platforms with a published build download directly; the rest go to Releases.
+      var direct = { macOS: "https://github.com/nearbycoder/slip/releases/latest/download/Slip-macOS.zip" };
+      if (direct[os]) {
+        document.querySelectorAll("a.dl").forEach(function (el) { el.href = direct[os]; });
       }
 
       document.getElementById("yr").textContent = new Date().getFullYear();
